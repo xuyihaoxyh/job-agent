@@ -1,0 +1,8 @@
+{
+  "search": {
+    "command": "python",
+    "args": ["-m", "app.mcp.search_server"],
+    "transport": "stdio"
+  }
+}
+
