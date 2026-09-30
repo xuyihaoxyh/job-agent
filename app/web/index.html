@@ -6,181 +6,262 @@
   <title>Job Agent · 岗位分析</title>
   <style>
     :root {
-      --ink: #17201d; --muted: #66736e; --paper: #f3f0e8;
-      --card: rgba(255,255,255,.88); --line: #d9ded8;
-      --green: #16654b; --green-2: #2f8468; --green-soft: #e1eee8;
-      --orange: #dd6a2f; --orange-soft: #fae9df; --red: #9b2c21;
-      --shadow: 0 18px 48px rgba(31,49,41,.08);
+      --ink:#17231f; --ink-2:#33413c; --muted:#71807a; --canvas:#f4f6f5;
+      --surface:#fff; --surface-2:#f8faf9; --line:#e3e9e6; --line-strong:#d5dfda;
+      --brand:#176b50; --brand-dark:#10523e; --brand-2:#329070; --brand-soft:#e7f3ee;
+      --blue:#326b83; --blue-soft:#eaf3f6; --amber:#b9692c; --amber-soft:#fff1e5;
+      --red:#a43d35; --red-soft:#fcebea; --shadow:0 18px 50px rgba(26,53,43,.07);
+      --font:Inter,"SF Pro Text","SF Pro Display",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; color: var(--ink); background:
-        radial-gradient(circle at 7% 4%, rgba(221,106,47,.13), transparent 24rem),
-        radial-gradient(circle at 94% 17%, rgba(22,101,75,.13), transparent 28rem),
-        var(--paper);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "PingFang SC", sans-serif;
-    }
-    .shell { width: min(1240px, calc(100% - 32px)); margin: auto; padding: 36px 0 72px; }
-    header { display:flex; justify-content:space-between; gap:24px; align-items:flex-end; margin-bottom:26px; }
-    .eyebrow { color:var(--orange); font-size:12px; font-weight:850; letter-spacing:.15em; text-transform:uppercase; }
-    h1 { margin:8px 0 5px; font: clamp(34px,5vw,58px)/1 Georgia,"Songti SC",serif; }
-    header p { margin:0; color:var(--muted); }
-    .mode,.pill { display:inline-flex; align-items:center; border-radius:999px; font-size:12px; font-weight:800; }
-    .mode { padding:8px 13px; color:var(--green); background:var(--green-soft); border:1px solid #bad4c8; }
-    .layout { display:grid; grid-template-columns:minmax(330px,.78fr) minmax(0,1.42fr); gap:22px; align-items:start; }
-    .card { background:var(--card); border:1px solid rgba(255,255,255,.92); border-radius:20px; box-shadow:var(--shadow); backdrop-filter:blur(10px); padding:24px; }
-    .input-card { position:sticky; top:18px; }
-    .card h2 { margin:0 0 18px; font-size:18px; }
-    .fields { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-    .field { display:flex; flex-direction:column; gap:7px; }
+    * { box-sizing:border-box; }
+    html { color-scheme:light; }
+    body { margin:0; color:var(--ink); background:var(--canvas); font-family:var(--font); font-size:14px; -webkit-font-smoothing:antialiased; }
+    body::before { content:""; position:fixed; inset:0 0 auto; height:360px; pointer-events:none; background:radial-gradient(circle at 15% 0,rgba(50,144,112,.11),transparent 34%),radial-gradient(circle at 88% 8%,rgba(50,107,131,.08),transparent 28%),linear-gradient(180deg,#fbfcfb 0%,transparent 100%); z-index:-1; }
+    svg { display:block; }
+    .icon { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; flex:0 0 auto; }
+    .shell { width:min(1420px,calc(100% - 48px)); margin:auto; padding:0 0 72px; }
+    .topbar { height:68px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(213,223,218,.75); }
+    .brand { display:flex; align-items:center; gap:11px; font-weight:780; letter-spacing:-.02em; }
+    .brand-mark { width:34px; height:34px; display:grid; place-items:center; color:white; background:linear-gradient(145deg,var(--brand-2),var(--brand-dark)); border-radius:10px; box-shadow:0 6px 14px rgba(23,107,80,.2); }
+    .brand-mark .icon { width:19px; height:19px; }
+    .top-status { display:flex; align-items:center; gap:16px; color:var(--muted); font-size:12px; }
+    .status-dot { display:inline-flex; align-items:center; gap:7px; }
+    .status-dot::before { content:""; width:7px; height:7px; border-radius:50%; background:#35a778; box-shadow:0 0 0 4px rgba(53,167,120,.11); }
+    .mode,.pill { display:inline-flex; align-items:center; gap:6px; border-radius:999px; font-size:11px; font-weight:750; white-space:nowrap; }
+    .mode { padding:7px 11px; color:var(--brand); background:var(--brand-soft); border:1px solid #cce2d9; }
+    .mode .icon { width:13px; height:13px; }
+    .hero { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; padding:38px 0 26px; }
+    .eyebrow { display:flex; align-items:center; gap:7px; color:var(--brand); font-size:11px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
+    .eyebrow .icon { width:14px; height:14px; }
+    h1 { margin:10px 0 8px; font-size:clamp(34px,4vw,48px); line-height:1.08; letter-spacing:-.045em; font-weight:780; }
+    .hero p { margin:0; color:var(--muted); font-size:15px; line-height:1.7; }
+    .hero-note { max-width:290px; padding:11px 13px; border:1px solid var(--line); border-radius:12px; color:var(--muted); background:rgba(255,255,255,.62); font-size:12px; line-height:1.55; }
+    .layout { display:grid; grid-template-columns:minmax(350px,420px) minmax(0,1fr); gap:22px; align-items:start; }
+    .card { background:var(--surface); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); }
+    .input-card { position:sticky; top:18px; overflow:hidden; }
+    .card-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:20px 22px 17px; border-bottom:1px solid var(--line); }
+    .title-with-icon { display:flex; align-items:center; gap:10px; }
+    .title-icon { width:32px; height:32px; border-radius:9px; display:grid; place-items:center; color:var(--brand); background:var(--brand-soft); }
+    .title-icon .icon { width:16px; height:16px; }
+    .card h2 { margin:0; font-size:16px; letter-spacing:-.01em; }
+    .required-note { color:var(--muted); font-size:11px; }
+    form { padding:0 22px 22px; }
+    .form-group { padding:20px 0; border-bottom:1px solid var(--line); }
+    .form-group:last-of-type { border-bottom:0; padding-bottom:2px; }
+    .group-title { display:flex; align-items:center; gap:7px; margin-bottom:13px; color:var(--ink-2); font-size:12px; font-weight:780; }
+    .group-title .icon { width:15px; height:15px; color:var(--brand); }
+    .fields { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
+    .field { display:flex; flex-direction:column; gap:7px; min-width:0; }
     .wide { grid-column:1/-1; }
-    label { font-size:13px; font-weight:760; }
-    input,textarea,select { width:100%; border:1px solid var(--line); border-radius:11px; padding:11px 12px; background:#fff; color:var(--ink); font:inherit; outline:none; }
-    input:focus,textarea:focus,select:focus { border-color:var(--green); box-shadow:0 0 0 3px rgba(22,101,75,.1); }
-    textarea { min-height:92px; resize:vertical; line-height:1.55; }
-    #jdText { min-height:150px; }
-    small,.muted { color:var(--muted); line-height:1.45; }
-    button { width:100%; margin-top:18px; border:0; border-radius:12px; padding:13px 18px; background:var(--green); color:#fff; font:inherit; font-weight:820; cursor:pointer; transition:.15s; }
-    button:hover { transform:translateY(-1px); background:#10573f; }
-    button:disabled { opacity:.62; cursor:wait; transform:none; }
+    label { font-size:12px; font-weight:680; color:var(--ink-2); }
+    input,textarea,select { width:100%; border:1px solid var(--line-strong); border-radius:10px; padding:10px 11px; background:#fff; color:var(--ink); font:inherit; font-size:13px; outline:none; transition:border-color .16s,box-shadow .16s,background .16s; }
+    input:hover,textarea:hover,select:hover { border-color:#b9c9c1; }
+    input:focus,textarea:focus,select:focus { border-color:var(--brand-2); box-shadow:0 0 0 3px rgba(50,144,112,.11); }
+    textarea { min-height:88px; resize:vertical; line-height:1.6; }
+    #jdText { min-height:148px; }
+    small,.muted { color:var(--muted); line-height:1.5; }
+    .field small { font-size:11px; }
+    .router-control { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; padding:4px; border-radius:11px; background:#eef2f0; }
+    .router-control select { grid-column:1/-1; border:0; background:transparent; box-shadow:none; cursor:pointer; font-weight:650; }
+    .primary-button { width:100%; min-height:46px; margin-top:20px; display:flex; align-items:center; justify-content:center; gap:9px; border:0; border-radius:11px; padding:12px 18px; background:linear-gradient(135deg,var(--brand),var(--brand-dark)); color:#fff; font:inherit; font-weight:760; cursor:pointer; box-shadow:0 8px 20px rgba(23,107,80,.2); transition:transform .16s,box-shadow .16s,opacity .16s; }
+    .primary-button:hover { transform:translateY(-1px); box-shadow:0 11px 24px rgba(23,107,80,.25); }
+    .primary-button:disabled { opacity:.65; cursor:wait; transform:none; box-shadow:none; }
+    .primary-button .icon { width:17px; height:17px; }
     .hidden { display:none !important; }
-    .placeholder { min-height:520px; display:grid; place-items:center; text-align:center; color:var(--muted); }
-    .placeholder strong { display:block; color:var(--ink); font-size:21px; margin-bottom:8px; }
-    .spinner { width:34px; height:34px; margin:0 auto 16px; border:3px solid var(--green-soft); border-top-color:var(--green); border-radius:50%; animation:spin .8s linear infinite; }
+    .output-card { min-height:680px; padding:20px; }
+    .placeholder { min-height:638px; display:grid; place-items:center; text-align:center; color:var(--muted); border:1px dashed var(--line-strong); border-radius:14px; background:linear-gradient(145deg,#fbfcfc,#f6f9f7); }
+    .empty-visual { width:70px; height:70px; margin:0 auto 18px; display:grid; place-items:center; color:var(--brand); border-radius:22px; background:var(--brand-soft); box-shadow:inset 0 0 0 1px #d5e9e0; }
+    .empty-visual .icon { width:30px; height:30px; }
+    .placeholder strong { display:block; color:var(--ink); font-size:19px; margin-bottom:7px; letter-spacing:-.02em; }
+    .placeholder p { max-width:380px; margin:0; line-height:1.65; }
+    .spinner-wrap { width:62px; height:62px; margin:0 auto 18px; display:grid; place-items:center; position:relative; color:var(--brand); }
+    .spinner { position:absolute; inset:0; border:3px solid var(--brand-soft); border-top-color:var(--brand); border-radius:50%; animation:spin .8s linear infinite; }
+    .spinner-wrap .icon { width:23px; height:23px; }
     @keyframes spin { to { transform:rotate(360deg); } }
-    .loading-flow { display:flex; gap:7px; justify-content:center; flex-wrap:wrap; margin-top:18px; }
-    .loading-flow span { padding:6px 9px; border-radius:999px; background:#eef2ef; font-size:11px; }
-    .loading-flow span:nth-child(3) { animation:pulse 1.2s ease-in-out infinite; background:var(--green-soft); color:var(--green); }
-    @keyframes pulse { 50% { opacity:.45; } }
-    .error { color:var(--red); background:#fbe9e6; border:1px solid #efc1b9; border-radius:11px; padding:13px; line-height:1.5; margin-top:10px; }
-
+    .loading-flow { display:flex; gap:0; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:22px; }
+    .loading-flow span { position:relative; padding:7px 11px; border:1px solid var(--line); border-radius:8px; background:#fff; font-size:10px; font-weight:720; }
+    .loading-flow i { width:18px; height:1px; background:var(--line-strong); }
+    .loading-flow span:nth-of-type(3) { animation:pulse 1.2s ease-in-out infinite; border-color:#b9daca; background:var(--brand-soft); color:var(--brand); }
+    @keyframes pulse { 50% { opacity:.48; } }
+    .error { display:flex; align-items:flex-start; gap:9px; color:var(--red); background:var(--red-soft); border:1px solid #f1c7c3; border-radius:11px; padding:13px; line-height:1.5; margin:0 0 12px; }
+    .error::before { content:"!"; width:19px; height:19px; display:grid; place-items:center; flex:0 0 auto; border-radius:50%; color:#fff; background:var(--red); font-weight:800; font-size:11px; }
+    .result-kicker { display:flex; justify-content:space-between; align-items:center; gap:14px; margin:1px 2px 14px; }
+    .result-kicker h2 { margin:0; font-size:17px; letter-spacing:-.02em; }
+    .result-kicker span { color:var(--muted); font-size:11px; }
     .hero-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-    .stat { border:1px solid var(--line); background:rgba(255,255,255,.78); border-radius:14px; padding:14px; min-width:0; }
-    .stat span { color:var(--muted); font-size:11px; display:block; }
-    .stat strong { display:block; margin-top:5px; font-size:19px; overflow:hidden; text-overflow:ellipsis; }
-    .result-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
-    .result-panel { border:1px solid var(--line); background:rgba(255,255,255,.72); border-radius:16px; padding:18px; }
+    .stat { position:relative; min-width:0; min-height:108px; overflow:hidden; border:1px solid var(--line); background:var(--surface-2); border-radius:14px; padding:14px; }
+    .stat::after { content:""; position:absolute; width:70px; height:70px; right:-28px; bottom:-34px; border-radius:50%; background:currentColor; opacity:.06; }
+    .stat-top { display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--muted); font-size:11px; }
+    .stat-icon { width:27px; height:27px; display:grid; place-items:center; border-radius:8px; color:var(--brand); background:var(--brand-soft); }
+    .stat-icon .icon { width:14px; height:14px; }
+    .stat:nth-child(2) .stat-icon { color:var(--blue); background:var(--blue-soft); }
+    .stat:nth-child(3) .stat-icon { color:var(--amber); background:var(--amber-soft); }
+    .stat:nth-child(4) .stat-icon { color:#616d79; background:#edf0f2; }
+    .stat strong { display:block; margin-top:14px; font-size:20px; line-height:1.15; letter-spacing:-.035em; font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .result-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+    .result-panel { border:1px solid var(--line); background:#fff; border-radius:14px; padding:18px; }
     .result-panel.full { grid-column:1/-1; }
-    .panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
-    .panel-head h3 { margin:0; font-size:15px; }
+    .panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .panel-title { display:flex; align-items:center; gap:8px; }
+    .panel-title > .icon { width:17px; height:17px; color:var(--brand); }
+    .panel-head h3 { margin:0; font-size:14px; letter-spacing:-.01em; }
     .confidence { padding:5px 8px; }
     .confidence.high { color:#14603f; background:#dcf0e5; }
-    .confidence.medium { color:#835118; background:#faecd5; }
+    .confidence.medium { color:#87531c; background:#faecd5; }
     .confidence.low { color:#923a30; background:#f8dfdb; }
-    .company-summary { margin:0 0 14px; line-height:1.65; }
-    .facts { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
-    .fact { background:#f5f7f4; border-radius:10px; padding:10px; }
-    .fact span { display:block; color:var(--muted); font-size:11px; margin-bottom:4px; }
-    .fact strong { font-size:13px; line-height:1.45; }
+    .company-summary { margin:0 0 14px; line-height:1.68; color:var(--ink-2); }
+    .facts { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .fact { background:var(--surface-2); border:1px solid #edf1ef; border-radius:9px; padding:10px; }
+    .fact span { display:block; color:var(--muted); font-size:10px; margin-bottom:4px; }
+    .fact strong { font-size:12px; line-height:1.45; }
     .businesses,.tag-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
-    .businesses span,.tag { padding:6px 8px; border-radius:8px; background:var(--green-soft); color:var(--green); font-size:12px; }
-    .tag.gap { color:#8b4424; background:var(--orange-soft); }
-    .relevance,.notice { margin-top:12px; padding:10px 12px; border-left:3px solid var(--green-2); background:#f3f7f5; color:#42534c; font-size:12px; line-height:1.55; }
-    .notice { border-color:var(--orange); background:#fdf6f1; }
+    .businesses span,.tag { display:inline-flex; align-items:center; padding:6px 8px; border-radius:7px; background:var(--brand-soft); color:var(--brand); font-size:11px; }
+    .tag::before { content:"✓"; margin-right:5px; font-weight:800; }
+    .tag.gap { color:#965326; background:var(--amber-soft); }
+    .tag.gap::before { content:"!"; }
+    .relevance,.notice { margin-top:12px; padding:10px 12px; border-left:3px solid var(--brand-2); border-radius:0 8px 8px 0; background:#f3f8f5; color:#465750; font-size:11px; line-height:1.6; }
+    .notice { border-color:var(--amber); background:#fff8f1; }
     .salary-range { display:flex; align-items:baseline; gap:7px; margin:4px 0 13px; }
-    .salary-range strong { font-size:27px; font-family:Georgia,serif; }
-    .salary-range span { color:var(--muted); font-size:12px; }
-    .meta-row { display:flex; flex-wrap:wrap; gap:7px; margin:10px 0; }
-    .meta-row span { padding:6px 8px; background:#f0f3f1; border-radius:8px; color:#52615b; font-size:11px; }
-    .dimension { margin:11px 0; }
-    .dimension-head { display:flex; justify-content:space-between; gap:12px; font-size:12px; margin-bottom:6px; }
-    .dimension-head strong { white-space:nowrap; }
-    .bar { height:8px; border-radius:999px; background:#e6ebe7; overflow:hidden; }
-    .bar > span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--green),#56a486); }
-    .dimension small { display:block; margin-top:5px; }
-    .list-label { margin:14px 0 7px; font-size:12px; font-weight:800; }
-
-    .section { border-top:1px solid var(--line); padding-top:19px; margin-top:19px; }
-    .section-title { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:13px; }
-    .section-title h3 { margin:0; font-size:15px; }
-    .markdown { line-height:1.72; color:#25302c; }
-    .markdown h1 { font:700 25px/1.25 Georgia,"Songti SC",serif; margin:0 0 18px; }
-    .markdown h2 { font-size:17px; margin:23px 0 8px; }
-    .markdown h3 { font-size:15px; margin:18px 0 7px; }
+    .salary-range strong { font-size:28px; letter-spacing:-.045em; font-variant-numeric:tabular-nums; }
+    .salary-range span { color:var(--muted); font-size:11px; }
+    .meta-row { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+    .meta-row span { padding:5px 7px; border:1px solid var(--line); background:var(--surface-2); border-radius:7px; color:#596861; font-size:10px; }
+    .dimension { margin:12px 0; }
+    .dimension-head { display:flex; justify-content:space-between; gap:12px; font-size:11px; margin-bottom:7px; }
+    .dimension-head strong { white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .bar { height:7px; border-radius:999px; background:#e9eeeb; overflow:hidden; }
+    .bar > span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--brand),#4ca283); }
+    .dimension small { display:block; margin-top:5px; font-size:10px; }
+    .list-label { display:flex; align-items:center; gap:6px; margin:15px 0 7px; font-size:11px; font-weight:780; }
+    .section { border:1px solid var(--line); border-radius:14px; padding:18px; margin-top:12px; background:#fff; }
+    .section-title { display:flex; justify-content:space-between; gap:12px; align-items:center; padding-bottom:14px; margin-bottom:14px; border-bottom:1px solid var(--line); }
+    .section-title h3 { display:flex; align-items:center; gap:8px; margin:0; font-size:14px; }
+    .section-title .icon { width:17px; height:17px; color:var(--brand); }
+    .section-title > span { font-size:10px; }
+    .markdown { line-height:1.72; color:var(--ink-2); }
+    .markdown h1 { font-size:21px; line-height:1.3; letter-spacing:-.025em; margin:0 0 18px; }
+    .markdown h2 { font-size:15px; margin:22px 0 8px; color:var(--ink); }
+    .markdown h3 { font-size:13px; margin:17px 0 7px; }
     .markdown p { margin:8px 0; }
-    .markdown ul { margin:8px 0; padding-left:21px; }
+    .markdown ul { margin:8px 0; padding-left:20px; }
     .markdown li { margin:5px 0; }
-    .markdown a { color:var(--green); }
-    details { border:1px solid var(--line); border-radius:13px; background:rgba(255,255,255,.62); margin-top:12px; }
-    summary { cursor:pointer; padding:13px 15px; font-size:13px; font-weight:800; }
-    .details-body { padding:0 15px 15px; }
-    .sources { display:grid; gap:8px; }
-    .source { display:block; color:var(--green); text-decoration:none; border:1px solid var(--line); border-radius:10px; padding:10px; background:#fff; }
-    .source:hover { border-color:var(--green); }
-    .source small { display:block; margin-top:4px; overflow-wrap:anywhere; }
-
-    .flow { display:grid; justify-items:center; gap:9px; padding:5px 0 3px; }
-    .flow-row { display:flex; align-items:center; justify-content:center; gap:9px; width:100%; }
-    .flow-node { min-width:105px; text-align:center; border:1px solid #bfd6cb; background:var(--green-soft); color:var(--green); border-radius:11px; padding:9px; }
-    .flow-node strong { display:block; font-size:12px; }
-    .flow-node small { font-size:10px; }
-    .flow-arrow { color:#95a19b; font-weight:800; }
-    .parallel-label { color:var(--muted); font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
-    .parallel { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; }
+    .markdown a { color:var(--brand); }
+    details { border:1px solid var(--line); border-radius:12px; background:#fff; margin-top:10px; overflow:hidden; }
+    details[open] { box-shadow:0 8px 24px rgba(26,53,43,.04); }
+    summary { list-style:none; position:relative; cursor:pointer; padding:13px 42px 13px 15px; font-size:12px; font-weight:730; }
+    summary::-webkit-details-marker { display:none; }
+    summary::after { content:"⌄"; position:absolute; right:16px; top:11px; color:var(--muted); font-size:16px; transition:transform .15s; }
+    details[open] summary::after { transform:rotate(180deg); }
+    .details-body { padding:2px 15px 15px; border-top:1px solid var(--line); }
+    .sources { display:grid; gap:7px; padding-top:12px; }
+    .source { display:block; color:var(--brand); text-decoration:none; border:1px solid var(--line); border-radius:9px; padding:10px; background:var(--surface-2); transition:border-color .15s,transform .15s; }
+    .source:hover { border-color:var(--brand-2); transform:translateX(2px); }
+    .source small { display:block; margin-top:4px; overflow-wrap:anywhere; font-size:10px; }
+    .flow { display:grid; justify-items:center; gap:8px; padding:18px 0 8px; }
+    .flow-row { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; }
+    .flow-node { position:relative; min-width:116px; text-align:left; border:1px solid #c8dfd5; background:var(--brand-soft); color:var(--brand); border-radius:10px; padding:10px 10px 10px 34px; }
+    .flow-node::before { content:"✓"; position:absolute; left:10px; top:50%; transform:translateY(-50%); width:16px; height:16px; display:grid; place-items:center; border-radius:50%; background:var(--brand); color:white; font-size:9px; font-weight:900; }
+    .flow-node strong { display:block; font-size:11px; }
+    .flow-node small { font-size:9px; color:#4f7969; font-variant-numeric:tabular-nums; }
+    .flow-arrow { color:#a9b6b0; font-weight:700; }
+    .parallel-label { color:var(--muted); font-size:9px; letter-spacing:.12em; text-transform:uppercase; }
+    .parallel { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; max-width:570px; }
     .parallel .flow-node { min-width:0; }
-    .metrics { display:grid; grid-template-columns:repeat(2,1fr); gap:7px; margin-top:12px; }
-    .metric { display:flex; justify-content:space-between; background:#f4f6f4; border-radius:8px; padding:8px 9px; font-size:12px; }
-    .technical-meta { margin-top:12px; font-size:11px; overflow-wrap:anywhere; }
-
-    @media (max-width:940px) { .layout{grid-template-columns:1fr}.input-card{position:static}.hero-stats{grid-template-columns:1fr 1fr} }
-    @media (max-width:600px) { .shell{width:min(100% - 20px,1240px);padding-top:24px}header{align-items:flex-start;flex-direction:column}.card{padding:18px}.fields,.result-grid,.facts{grid-template-columns:1fr}.wide,.result-panel.full{grid-column:auto}.hero-stats{grid-template-columns:1fr 1fr}.parallel{grid-template-columns:1fr}.metrics{grid-template-columns:1fr} }
+    .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:12px; }
+    .metric { display:flex; justify-content:space-between; border:1px solid var(--line); background:var(--surface-2); border-radius:8px; padding:8px 9px; font-size:10px; }
+    .metric strong { font-variant-numeric:tabular-nums; }
+    .technical-meta { margin-top:12px; font-size:10px; overflow-wrap:anywhere; line-height:1.6; }
+    @media (max-width:1100px) { .shell{width:min(100% - 32px,1420px)}.layout{grid-template-columns:minmax(330px,380px) minmax(0,1fr)}.hero-stats{grid-template-columns:1fr 1fr}.result-grid{grid-template-columns:1fr}.result-panel.full{grid-column:auto} }
+    @media (max-width:860px) { .layout{grid-template-columns:1fr}.input-card{position:static}.hero-note{display:none}.output-card{min-height:520px}.placeholder{min-height:480px} }
+    @media (max-width:560px) { .shell{width:min(100% - 20px,1420px)}.topbar{height:60px}.top-status>.status-dot{display:none}.hero{padding:28px 2px 20px}.hero p{font-size:13px}.card-head,form{padding-left:16px;padding-right:16px}.fields,.facts{grid-template-columns:1fr}.wide{grid-column:auto}.output-card{padding:12px}.hero-stats{grid-template-columns:1fr 1fr}.stat{min-height:98px;padding:12px}.stat strong{font-size:17px}.parallel{grid-template-columns:1fr;max-width:230px}.flow-row{flex-direction:column}.flow-row>.flow-arrow{transform:rotate(90deg)}.metrics{grid-template-columns:1fr 1fr}.section{padding:15px}.result-kicker{align-items:flex-start;flex-direction:column} }
   </style>
 </head>
 <body>
+  <svg aria-hidden="true" width="0" height="0" style="position:absolute">
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3-1.4 4.1a5.5 5.5 0 0 1-3.5 3.5L3 12l4.1 1.4a5.5 5.5 0 0 1 3.5 3.5L12 21l1.4-4.1a5.5 5.5 0 0 1 3.5-3.5L21 12l-4.1-1.4a5.5 5.5 0 0 1-3.5-3.5Z"/></symbol>
+    <symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="m15 9 5-5M17 4h3v3"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M4 6h14a2 2 0 0 1 2 2v10H4a2 2 0 0 1-2-2V6a3 3 0 0 1 3-3h12"/><path d="M15 11h7v4h-7a2 2 0 0 1 0-4Z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24"><path d="M4 21V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v16M17 9h2a2 2 0 0 1 2 2v10M2 21h21M8 7h5M8 11h5M8 15h5M9 21v-3h3v3"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M14 2v5h5M8 12h6M8 16h7"/></symbol>
+    <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 7v3a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3v1M11 8l-3 5 3 5"/></symbol>
+  </svg>
   <main class="shell">
-    <header>
-      <div><div class="eyebrow">LangGraph · MCP · Job Intelligence</div><h1>岗位分析工作台</h1><p>基于公开来源，解释岗位匹配、公司背景与薪资参考。</p></div>
-      <div class="mode">Fixed Router · V1</div>
+    <nav class="topbar">
+      <div class="brand"><span class="brand-mark"><svg class="icon"><use href="#i-spark"/></svg></span><span>Job Agent</span></div>
+      <div class="top-status"><span class="status-dot">服务已就绪</span><span class="mode"><svg class="icon"><use href="#i-route"/></svg>Fixed Router · V1</span></div>
+    </nav>
+    <header class="hero">
+      <div><div class="eyebrow"><svg class="icon"><use href="#i-spark"/></svg>LangGraph · MCP · Job Intelligence</div><h1>岗位分析工作台</h1><p>整合岗位要求、候选人背景与公开数据，生成可解释的求职决策参考。</p></div>
+      <div class="hero-note">Company、Salary 与 Match 节点并行执行，结果由 Report Agent 统一汇总。</div>
     </header>
     <div class="layout">
       <section class="card input-card">
-        <h2>分析输入</h2>
+        <div class="card-head"><div class="title-with-icon"><span class="title-icon"><svg class="icon"><use href="#i-briefcase"/></svg></span><div><h2>创建岗位分析</h2></div></div><span class="required-note">* 必填</span></div>
         <form id="analysisForm">
-          <div class="fields">
-            <div class="field"><label for="userId">用户 ID</label><input id="userId" value="demo-user" required></div>
-            <div class="field"><label for="companyName">公司名称</label><input id="companyName" value="示例科技" required></div>
-            <div class="field"><label for="location">目标城市</label><input id="location" value="上海"></div>
-            <div class="field"><label for="experience">工作经验（年）</label><input id="experience" type="number" min="0" step="0.5" value="3"></div>
-            <div class="field wide"><label for="skills">个人技能</label><input id="skills" value="Java, Spring Boot, MySQL, Redis, Docker"><small>使用中文或英文逗号分隔。</small></div>
-            <div class="field wide"><label for="education">学历</label><input id="education" value="计算机相关硕士"></div>
-            <div class="field wide"><label for="question">希望分析什么</label><input id="question" value="分析岗位匹配度、公司情况和预计薪资"></div>
-            <div class="field wide"><label for="jdText">岗位 JD</label><textarea id="jdText" required>招聘Java后端工程师，要求3年经验，熟悉Java、Spring Boot、MySQL、Redis和Docker，负责核心业务系统设计与开发。</textarea></div>
-            <div class="field wide"><label for="routerMode">Router 模式</label><select id="routerMode"><option value="fixed">Fixed（当前可用）</option><option disabled>LLM（V2 待实现）</option><option disabled>Hybrid（V3 待实现）</option></select></div>
+          <div class="form-group">
+            <div class="group-title"><svg class="icon"><use href="#i-target"/></svg>目标岗位</div>
+            <div class="fields">
+              <div class="field"><label for="companyName">公司名称 *</label><input id="companyName" value="示例科技" required></div>
+              <div class="field"><label for="location">目标城市</label><input id="location" value="上海"></div>
+              <div class="field wide"><label for="question">分析目标</label><input id="question" value="分析岗位匹配度、公司情况和预计薪资"></div>
+              <div class="field wide"><label for="jdText">岗位 JD *</label><textarea id="jdText" required>招聘Java后端工程师，要求3年经验，熟悉Java、Spring Boot、MySQL、Redis和Docker，负责核心业务系统设计与开发。</textarea><small>建议粘贴完整职责与任职要求，结果会更准确。</small></div>
+            </div>
           </div>
-          <button id="submitButton" type="submit">开始分析</button>
+          <div class="form-group">
+            <div class="group-title"><svg class="icon"><use href="#i-user"/></svg>候选人背景</div>
+            <div class="fields">
+              <div class="field"><label for="userId">用户 ID *</label><input id="userId" value="demo-user" required></div>
+              <div class="field"><label for="experience">工作经验（年）</label><input id="experience" type="number" min="0" step="0.5" value="3"></div>
+              <div class="field wide"><label for="skills">个人技能</label><input id="skills" value="Java, Spring Boot, MySQL, Redis, Docker"><small>使用中文或英文逗号分隔。</small></div>
+              <div class="field wide"><label for="education">学历</label><input id="education" value="计算机相关硕士"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="group-title"><svg class="icon"><use href="#i-settings"/></svg>运行配置</div>
+            <div class="field"><label for="routerMode">Router 模式</label><div class="router-control"><select id="routerMode"><option value="fixed">Fixed · 固定执行链路（当前可用）</option><option disabled>LLM · 动态决策（V2 待实现）</option><option disabled>Hybrid · 约束式动态路由（V3 待实现）</option></select></div></div>
+          </div>
+          <button id="submitButton" class="primary-button" type="submit"><span>开始分析</span><svg class="icon"><use href="#i-arrow"/></svg></button>
         </form>
       </section>
 
       <section class="card output-card" aria-live="polite">
-        <div id="placeholder" class="placeholder"><div><strong>等待执行</strong>提交后将展示可解释的匹配结果、公司信息与薪资依据。</div></div>
-        <div id="loading" class="placeholder hidden"><div><div class="spinner"></div><strong>Agent 正在协作</strong><span id="loadingText">正在校验输入并解析 JD…</span><div class="loading-flow"><span>Intake</span><span>JD</span><span>Company · Salary · Match</span><span>Report</span></div></div></div>
+        <div id="placeholder" class="placeholder"><div><div class="empty-visual"><svg class="icon"><use href="#i-chart"/></svg></div><strong>准备开始分析</strong><p>填写左侧岗位和个人背景，Agent 将返回匹配度、公司画像、薪资区间与完整执行依据。</p></div></div>
+        <div id="loading" class="placeholder hidden"><div><div class="spinner-wrap"><div class="spinner"></div><svg class="icon"><use href="#i-spark"/></svg></div><strong>Agent 正在协作</strong><p id="loadingText">正在校验输入并解析 JD…</p><div class="loading-flow"><span>Intake</span><i></i><span>JD</span><i></i><span>Parallel Agents</span><i></i><span>Report</span></div></div></div>
         <div id="errorBox" class="error hidden"></div>
         <div id="result" class="hidden">
+          <div class="result-kicker"><h2>分析结果</h2><span>基于规则评分与公开数据，仅作为求职决策参考</span></div>
           <div class="hero-stats">
-            <div class="stat"><span>规则匹配分</span><strong id="score">—</strong></div>
-            <div class="stat"><span>投递建议</span><strong id="recommendation">—</strong></div>
-            <div class="stat"><span>薪资参考</span><strong id="salaryStat">—</strong></div>
-            <div class="stat"><span>实际等待</span><strong id="elapsed">—</strong></div>
+            <div class="stat"><div class="stat-top"><span>规则匹配分</span><span class="stat-icon"><svg class="icon"><use href="#i-target"/></svg></span></div><strong id="score">—</strong></div>
+            <div class="stat"><div class="stat-top"><span>投递建议</span><span class="stat-icon"><svg class="icon"><use href="#i-check"/></svg></span></div><strong id="recommendation">—</strong></div>
+            <div class="stat"><div class="stat-top"><span>薪资参考</span><span class="stat-icon"><svg class="icon"><use href="#i-wallet"/></svg></span></div><strong id="salaryStat">—</strong></div>
+            <div class="stat"><div class="stat-top"><span>实际等待</span><span class="stat-icon"><svg class="icon"><use href="#i-clock"/></svg></span></div><strong id="elapsed">—</strong></div>
           </div>
           <div class="result-grid">
             <article class="result-panel full">
-              <div class="panel-head"><h3>匹配度解释</h3><span class="pill confidence medium">规则评分</span></div>
+              <div class="panel-head"><div class="panel-title"><svg class="icon"><use href="#i-target"/></svg><h3>匹配度解释</h3></div><span class="pill confidence medium">规则评分</span></div>
               <div id="dimensions"></div>
               <div class="list-label">优势</div><div id="advantages" class="tag-list"></div>
               <div class="list-label">缺口与待确认项</div><div id="gaps" class="tag-list"></div>
               <div id="scoringNote" class="notice"></div>
             </article>
             <article class="result-panel">
-              <div class="panel-head"><h3>公司画像</h3><span id="companyConfidence" class="pill confidence low">低可信度</span></div>
+              <div class="panel-head"><div class="panel-title"><svg class="icon"><use href="#i-building"/></svg><h3>公司画像</h3></div><span id="companyConfidence" class="pill confidence low">低可信度</span></div>
               <p id="companySummary" class="company-summary"></p><div id="companyFacts" class="facts"></div><div id="businesses" class="businesses"></div><div id="roleRelevance" class="relevance"></div>
             </article>
             <article class="result-panel">
-              <div class="panel-head"><h3>薪资参考</h3><span id="salaryConfidence" class="pill confidence low">低可信度</span></div>
+              <div class="panel-head"><div class="panel-title"><svg class="icon"><use href="#i-wallet"/></svg><h3>薪资参考</h3></div><span id="salaryConfidence" class="pill confidence low">低可信度</span></div>
               <div class="salary-range"><strong id="salaryRange">—</strong><span id="salaryUnit">CNY/月</span></div>
               <p id="salarySummary" class="muted"></p><div id="salaryMeta" class="meta-row"></div><div id="salaryMethod" class="relevance"></div><div id="salaryCaveats"></div>
             </article>
           </div>
-          <section class="section"><div class="section-title"><h3>完整分析报告</h3><span class="muted">已安全渲染 Markdown</span></div><div id="report" class="markdown"></div></section>
+          <section class="section"><div class="section-title"><h3><svg class="icon"><use href="#i-file"/></svg>完整分析报告</h3><span class="muted">安全渲染 Markdown</span></div><div id="report" class="markdown"></div></section>
           <details><summary id="sourceSummary">信息来源</summary><div class="details-body"><div id="sources" class="sources"></div></div></details>
           <details><summary>开发者详情 · Agent 执行链路</summary><div class="details-body">
             <div class="flow">
@@ -198,7 +279,7 @@
 
   <script>
     const $ = selector => document.querySelector(selector);
-    const form = $('#analysisForm'), button = $('#submitButton');
+    const form = $('#analysisForm'), button = $('#submitButton'), buttonLabel = $('#submitButton span');
     const placeholder = $('#placeholder'), loading = $('#loading'), result = $('#result'), errorBox = $('#errorBox');
     const value = id => $(`#${id}`).value.trim();
     const splitList = text => text.split(/[,，]/).map(item => item.trim()).filter(Boolean);
@@ -249,10 +330,10 @@
     function startLoadingMessages(){const messages=['正在校验输入并解析 JD…','正在并行搜索公司与薪资信息…','正在计算结构化匹配分…','正在整理来源并生成报告…'];let index=0;$('#loadingText').textContent=messages[0];loadingTimer=setInterval(()=>{$('#loadingText').textContent=messages[Math.min(++index,messages.length-1)];},1800);}
 
     form.addEventListener('submit',async event=>{
-      event.preventDefault();placeholder.classList.add('hidden');result.classList.add('hidden');errorBox.classList.add('hidden');loading.classList.remove('hidden');button.disabled=true;button.textContent='分析中…';startLoadingMessages();const years=Number(value('experience'));
+      event.preventDefault();placeholder.classList.add('hidden');result.classList.add('hidden');errorBox.classList.add('hidden');loading.classList.remove('hidden');button.disabled=true;buttonLabel.textContent='分析中…';startLoadingMessages();const years=Number(value('experience'));
       const payload={user_id:value('userId'),company_name:value('companyName'),target_location:value('location')||null,question:value('question'),jd_text:value('jdText'),router_mode:value('routerMode'),user_profile:{preferred_locations:value('location')?[value('location')]:[],skills:splitList(value('skills')),education:value('education')||null,years_of_experience:Number.isFinite(years)?years:null}};
       try{const response=await fetch('/api/v1/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const body=await response.json();if(!response.ok)throw new Error(body.detail||`请求失败（${response.status}）`);$('#elapsed').textContent=body.elapsed_ms>=1000?`${(body.elapsed_ms/1000).toFixed(1)} s`:`${body.elapsed_ms} ms`;renderMatch(body.match_result);renderCompany(body.company_info);renderSalary(body.salary_info);renderMarkdown(body.final_report);renderSources(body.sources||[]);renderFlow(body.metrics||[],body.elapsed_ms,body.thread_id,body.errors||[]);result.classList.remove('hidden');}
-      catch(error){errorBox.textContent=error.message||String(error);errorBox.classList.remove('hidden');}finally{clearInterval(loadingTimer);loading.classList.add('hidden');button.disabled=false;button.textContent='开始分析';}
+      catch(error){errorBox.textContent=error.message||String(error);errorBox.classList.remove('hidden');}finally{clearInterval(loadingTimer);loading.classList.add('hidden');button.disabled=false;buttonLabel.textContent='开始分析';}
     });
   </script>
 </body>
