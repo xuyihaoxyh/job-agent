@@ -46,6 +46,12 @@ class JDInfo(BaseModel):
 class CompanyInfo(BaseModel):
     company_name: str
     summary: str
+    company_type: str | None = None
+    headquarters: str | None = None
+    businesses: list[str] = Field(default_factory=list)
+    employee_scale: str | None = None
+    role_relevance: str | None = None
+    caveats: list[str] = Field(default_factory=list)
     facts: list[str] = Field(default_factory=list)
     confidence: Literal["low", "medium", "high"] = "low"
     sources: list[Source] = Field(default_factory=list)
@@ -59,8 +65,21 @@ class SalaryInfo(BaseModel):
     currency: str = "CNY"
     period: Literal["month", "year"] = "month"
     summary: str
+    sample_count: int = Field(default=0, ge=0)
+    company_specific_samples: int = Field(default=0, ge=0)
+    trusted_source_count: int = Field(default=0, ge=0)
+    methodology: str = "未获得足够样本"
+    caveats: list[str] = Field(default_factory=list)
     confidence: Literal["low", "medium", "high"] = "low"
     sources: list[Source] = Field(default_factory=list)
+
+
+class MatchScoreDimension(BaseModel):
+    key: Literal["skills", "experience", "education"]
+    label: str
+    score: int = Field(ge=0)
+    max_score: int = Field(gt=0)
+    detail: str
 
 
 class MatchResult(BaseModel):
@@ -70,6 +89,11 @@ class MatchResult(BaseModel):
     gaps: list[str] = Field(default_factory=list)
     matched_skills: list[str] = Field(default_factory=list)
     missing_skills: list[str] = Field(default_factory=list)
+    score_type: Literal["rule_based"] = "rule_based"
+    score_dimensions: list[MatchScoreDimension] = Field(default_factory=list)
+    scoring_note: str = (
+        "规则匹配分仅依据结构化技能、经验和学历计算，不代表面试或录用概率。"
+    )
 
 
 class RouteEvent(BaseModel):
@@ -89,4 +113,3 @@ class NodeMetric(BaseModel):
     node: str
     latency_ms: int = Field(ge=0)
     token_usage: int = Field(default=0, ge=0)
-

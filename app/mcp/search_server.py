@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 
 import httpx
@@ -11,7 +10,7 @@ mcp = FastMCP("job-search")
 
 
 @mcp.tool()
-async def web_search(query: str, max_results: int = 5) -> str:
+async def web_search(query: str, max_results: int = 5) -> list[dict[str, str]]:
     """Search the public web and return grounded results with title, URL, and snippet."""
     api_key = os.getenv("TAVILY_API_KEY")
     if not api_key:
@@ -40,9 +39,8 @@ async def web_search(query: str, max_results: int = 5) -> str:
         for item in payload.get("results", [])
         if item.get("url")
     ]
-    return json.dumps(results, ensure_ascii=False)
+    return results
 
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")
-

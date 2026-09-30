@@ -27,12 +27,29 @@ def test_analyze_and_restore_thread(tmp_path):
     }
 
     with TestClient(app) as client:
+        web = client.get("/")
+        assert web.status_code == 200
+        assert "岗位分析工作台" in web.text
+        assert "匹配度解释" in web.text
+        assert "parallel fan-out" in web.text
+
         response = client.post("/api/v1/analyze", json=payload)
         assert response.status_code == 200, response.text
         body = response.json()
         assert body["status"] == "completed"
         assert body["route_history"][0:2] == ["intake", "jd"]
         assert body["route_history"][-1] == "report"
+        assert body["step_count"] == 6
+        assert body["elapsed_ms"] >= 0
+        assert len(body["match_result"]["score_dimensions"]) == 3
+        assert {item["node"] for item in body["metrics"]} == {
+            "intake",
+            "jd",
+            "company",
+            "salary",
+            "match",
+            "report",
+        }
 
         restored = client.get(f"/api/v1/threads/{body['thread_id']}")
         assert restored.status_code == 200
@@ -42,4 +59,3 @@ def test_analyze_and_restore_thread(tmp_path):
         payload.pop("user_profile")
         second = client.post("/api/v1/analyze", json=payload)
         assert second.status_code == 200, second.text
-

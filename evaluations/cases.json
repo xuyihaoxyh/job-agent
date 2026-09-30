@@ -1,0 +1,105 @@
+[
+  {
+    "id": "comprehensive-java-001",
+    "category": "comprehensive",
+    "description": "同时分析公司、薪资与候选人匹配度",
+    "request": {
+      "user_id": "eval-user-001",
+      "question": "综合分析这个岗位是否值得投递",
+      "jd_text": "招聘Java后端工程师，要求3年经验，熟悉Java、Spring Boot、MySQL、Redis和Docker，负责核心业务系统设计与开发。",
+      "company_name": "示例科技",
+      "target_location": "上海",
+      "currency": "CNY",
+      "router_mode": "fixed",
+      "user_profile": {
+        "preferred_locations": ["上海"],
+        "skills": ["Java", "Spring Boot", "MySQL", "Redis", "Docker"],
+        "education": "计算机硕士",
+        "years_of_experience": 3
+      }
+    },
+    "expected_agents": ["intake", "jd", "company", "salary", "match", "report"],
+    "required_outputs": ["jd_info", "company_info", "salary_info", "match_result", "final_report"],
+    "requires_sources": true
+  },
+  {
+    "id": "company-only-001",
+    "category": "company",
+    "description": "只询问公司业务，理想动态路由应跳过薪资和匹配",
+    "request": {
+      "user_id": "eval-user-002",
+      "question": "这家公司主要做什么，业务方向如何？",
+      "jd_text": "招聘Java开发工程师，负责企业服务平台的后端接口和业务模块开发，要求熟悉Java与MySQL。",
+      "company_name": "示例科技",
+      "target_location": "上海",
+      "currency": "CNY",
+      "router_mode": "fixed",
+      "user_profile": {"skills": ["Java", "MySQL"], "years_of_experience": 2}
+    },
+    "expected_agents": ["intake", "company", "report"],
+    "required_outputs": ["company_info", "final_report"],
+    "requires_sources": true
+  },
+  {
+    "id": "salary-only-001",
+    "category": "salary",
+    "description": "只询问岗位薪资，JD 用于识别岗位名称",
+    "request": {
+      "user_id": "eval-user-003",
+      "question": "这个岗位在上海的待遇大概是多少？",
+      "jd_text": "招聘Java后端工程师，要求2年经验，熟悉Java、Spring Boot和MySQL，负责订单系统开发与维护。",
+      "company_name": "示例科技",
+      "target_location": "上海",
+      "currency": "CNY",
+      "router_mode": "fixed",
+      "user_profile": {"skills": ["Java", "Spring Boot"], "years_of_experience": 2}
+    },
+    "expected_agents": ["intake", "jd", "salary", "report"],
+    "required_outputs": ["jd_info", "salary_info", "final_report"],
+    "requires_sources": true
+  },
+  {
+    "id": "match-only-001",
+    "category": "match",
+    "description": "只判断个人资料与岗位要求是否匹配",
+    "request": {
+      "user_id": "eval-user-004",
+      "question": "我的背景匹配这个岗位吗？",
+      "jd_text": "招聘后端开发工程师，要求3年经验，掌握Java、Spring Boot、MySQL、Redis和Kubernetes。",
+      "company_name": "示例科技",
+      "target_location": "杭州",
+      "currency": "CNY",
+      "router_mode": "fixed",
+      "user_profile": {
+        "skills": ["Java", "Spring Boot", "MySQL", "Redis"],
+        "education": "本科",
+        "years_of_experience": 3
+      }
+    },
+    "expected_agents": ["intake", "jd", "match", "report"],
+    "required_outputs": ["jd_info", "match_result", "final_report"],
+    "requires_sources": false
+  },
+  {
+    "id": "skill-gap-001",
+    "category": "edge",
+    "description": "候选人技能明显不足时仍应给出完整且可解释的匹配结果",
+    "request": {
+      "user_id": "eval-user-005",
+      "question": "指出我与这个岗位之间的主要差距",
+      "jd_text": "招聘Java架构师，要求8年经验，熟悉Java、Spring Boot、MySQL、Redis、Kafka、Docker和Kubernetes。",
+      "company_name": "示例科技",
+      "target_location": "北京",
+      "currency": "CNY",
+      "router_mode": "fixed",
+      "user_profile": {
+        "skills": ["Java", "MySQL"],
+        "education": "本科",
+        "years_of_experience": 2
+      }
+    },
+    "expected_agents": ["intake", "jd", "match", "report"],
+    "required_outputs": ["jd_info", "match_result", "final_report"],
+    "requires_sources": false
+  }
+]

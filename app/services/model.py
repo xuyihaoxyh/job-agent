@@ -81,6 +81,34 @@ class DeterministicAnalysisModel:
             if salary_info.minimum is not None and salary_info.maximum is not None
             else "未找到足够可靠的数据"
         )
+        company_details = [
+            company_info.summary,
+            *(
+                [f"- 企业性质：{company_info.company_type}"]
+                if company_info.company_type
+                else []
+            ),
+            *(
+                [f"- 总部：{company_info.headquarters}"]
+                if company_info.headquarters
+                else []
+            ),
+            *(
+                [f"- 公开业务：{'、'.join(company_info.businesses)}"]
+                if company_info.businesses
+                else []
+            ),
+            *(
+                [f"- 规模：{company_info.employee_scale}"]
+                if company_info.employee_scale
+                else []
+            ),
+            *([f"- 岗位关联：{company_info.role_relevance}"] if company_info.role_relevance else []),
+        ]
+        score_lines = [
+            f"- {dimension.label}：{dimension.score}/{dimension.max_score}（{dimension.detail}）"
+            for dimension in match_result.score_dimensions
+        ]
         return "\n".join(
             [
                 "# 岗位分析报告",
@@ -89,14 +117,19 @@ class DeterministicAnalysisModel:
                 f"**匹配度：** {match_result.score}/100（{match_result.recommendation}）",
                 "",
                 "## 岗位匹配",
+                *score_lines,
                 f"- 优势：{'；'.join(match_result.advantages) or '暂无明显优势'}",
                 f"- 缺口：{'；'.join(match_result.gaps) or '未发现关键缺口'}",
+                f"- 说明：{match_result.scoring_note}",
                 "",
                 "## 公司信息",
-                company_info.summary,
+                *company_details,
                 "",
                 "## 薪资信息",
                 f"{salary_range}。{salary_info.summary}",
+                f"- 有效样本：{salary_info.sample_count} 个",
+                f"- 计算方法：{salary_info.methodology}",
+                *[f"- 注意：{item}" for item in salary_info.caveats],
                 "",
                 "## 来源",
                 *(source_lines or ["- 未获取到外部来源，相关结论可信度较低。"]),
@@ -163,4 +196,3 @@ def build_analysis_model(settings: Settings) -> AnalysisModel:
             api_key=settings.openai_api_key,
         )
     raise ValueError(f"Unsupported MODEL_BACKEND: {settings.model_backend}")
-

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from app.api.analyze import router as analyze_router
@@ -12,6 +14,9 @@ from app.graph.dependencies import GraphDependencies
 from app.mcp.client import MCPSearchGateway, StaticSearchGateway
 from app.memory.user_profile import SQLiteUserProfileRepository
 from app.services.model import build_analysis_model
+
+
+WEB_DIR = Path(__file__).resolve().parent / "web"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -49,6 +54,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application = FastAPI(title=active_settings.app_name, lifespan=lifespan)
     application.include_router(analyze_router)
 
+    @application.get("/", include_in_schema=False)
+    async def web_app() -> FileResponse:
+        return FileResponse(WEB_DIR / "index.html")
+
     @application.get("/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
@@ -57,4 +66,3 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
 
 app = create_app()
-

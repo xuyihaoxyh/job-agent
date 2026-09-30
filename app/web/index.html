@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Job Agent · 岗位分析</title>
+  <style>
+    :root {
+      --ink: #17201d; --muted: #66736e; --paper: #f3f0e8;
+      --card: rgba(255,255,255,.88); --line: #d9ded8;
+      --green: #16654b; --green-2: #2f8468; --green-soft: #e1eee8;
+      --orange: #dd6a2f; --orange-soft: #fae9df; --red: #9b2c21;
+      --shadow: 0 18px 48px rgba(31,49,41,.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; color: var(--ink); background:
+        radial-gradient(circle at 7% 4%, rgba(221,106,47,.13), transparent 24rem),
+        radial-gradient(circle at 94% 17%, rgba(22,101,75,.13), transparent 28rem),
+        var(--paper);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "PingFang SC", sans-serif;
+    }
+    .shell { width: min(1240px, calc(100% - 32px)); margin: auto; padding: 36px 0 72px; }
+    header { display:flex; justify-content:space-between; gap:24px; align-items:flex-end; margin-bottom:26px; }
+    .eyebrow { color:var(--orange); font-size:12px; font-weight:850; letter-spacing:.15em; text-transform:uppercase; }
+    h1 { margin:8px 0 5px; font: clamp(34px,5vw,58px)/1 Georgia,"Songti SC",serif; }
+    header p { margin:0; color:var(--muted); }
+    .mode,.pill { display:inline-flex; align-items:center; border-radius:999px; font-size:12px; font-weight:800; }
+    .mode { padding:8px 13px; color:var(--green); background:var(--green-soft); border:1px solid #bad4c8; }
+    .layout { display:grid; grid-template-columns:minmax(330px,.78fr) minmax(0,1.42fr); gap:22px; align-items:start; }
+    .card { background:var(--card); border:1px solid rgba(255,255,255,.92); border-radius:20px; box-shadow:var(--shadow); backdrop-filter:blur(10px); padding:24px; }
+    .input-card { position:sticky; top:18px; }
+    .card h2 { margin:0 0 18px; font-size:18px; }
+    .fields { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .field { display:flex; flex-direction:column; gap:7px; }
+    .wide { grid-column:1/-1; }
+    label { font-size:13px; font-weight:760; }
+    input,textarea,select { width:100%; border:1px solid var(--line); border-radius:11px; padding:11px 12px; background:#fff; color:var(--ink); font:inherit; outline:none; }
+    input:focus,textarea:focus,select:focus { border-color:var(--green); box-shadow:0 0 0 3px rgba(22,101,75,.1); }
+    textarea { min-height:92px; resize:vertical; line-height:1.55; }
+    #jdText { min-height:150px; }
+    small,.muted { color:var(--muted); line-height:1.45; }
+    button { width:100%; margin-top:18px; border:0; border-radius:12px; padding:13px 18px; background:var(--green); color:#fff; font:inherit; font-weight:820; cursor:pointer; transition:.15s; }
+    button:hover { transform:translateY(-1px); background:#10573f; }
+    button:disabled { opacity:.62; cursor:wait; transform:none; }
+    .hidden { display:none !important; }
+    .placeholder { min-height:520px; display:grid; place-items:center; text-align:center; color:var(--muted); }
+    .placeholder strong { display:block; color:var(--ink); font-size:21px; margin-bottom:8px; }
+    .spinner { width:34px; height:34px; margin:0 auto 16px; border:3px solid var(--green-soft); border-top-color:var(--green); border-radius:50%; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .loading-flow { display:flex; gap:7px; justify-content:center; flex-wrap:wrap; margin-top:18px; }
+    .loading-flow span { padding:6px 9px; border-radius:999px; background:#eef2ef; font-size:11px; }
+    .loading-flow span:nth-child(3) { animation:pulse 1.2s ease-in-out infinite; background:var(--green-soft); color:var(--green); }
+    @keyframes pulse { 50% { opacity:.45; } }
+    .error { color:var(--red); background:#fbe9e6; border:1px solid #efc1b9; border-radius:11px; padding:13px; line-height:1.5; margin-top:10px; }
+
+    .hero-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    .stat { border:1px solid var(--line); background:rgba(255,255,255,.78); border-radius:14px; padding:14px; min-width:0; }
+    .stat span { color:var(--muted); font-size:11px; display:block; }
+    .stat strong { display:block; margin-top:5px; font-size:19px; overflow:hidden; text-overflow:ellipsis; }
+    .result-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
+    .result-panel { border:1px solid var(--line); background:rgba(255,255,255,.72); border-radius:16px; padding:18px; }
+    .result-panel.full { grid-column:1/-1; }
+    .panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+    .panel-head h3 { margin:0; font-size:15px; }
+    .confidence { padding:5px 8px; }
+    .confidence.high { color:#14603f; background:#dcf0e5; }
+    .confidence.medium { color:#835118; background:#faecd5; }
+    .confidence.low { color:#923a30; background:#f8dfdb; }
+    .company-summary { margin:0 0 14px; line-height:1.65; }
+    .facts { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    .fact { background:#f5f7f4; border-radius:10px; padding:10px; }
+    .fact span { display:block; color:var(--muted); font-size:11px; margin-bottom:4px; }
+    .fact strong { font-size:13px; line-height:1.45; }
+    .businesses,.tag-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+    .businesses span,.tag { padding:6px 8px; border-radius:8px; background:var(--green-soft); color:var(--green); font-size:12px; }
+    .tag.gap { color:#8b4424; background:var(--orange-soft); }
+    .relevance,.notice { margin-top:12px; padding:10px 12px; border-left:3px solid var(--green-2); background:#f3f7f5; color:#42534c; font-size:12px; line-height:1.55; }
+    .notice { border-color:var(--orange); background:#fdf6f1; }
+    .salary-range { display:flex; align-items:baseline; gap:7px; margin:4px 0 13px; }
+    .salary-range strong { font-size:27px; font-family:Georgia,serif; }
+    .salary-range span { color:var(--muted); font-size:12px; }
+    .meta-row { display:flex; flex-wrap:wrap; gap:7px; margin:10px 0; }
+    .meta-row span { padding:6px 8px; background:#f0f3f1; border-radius:8px; color:#52615b; font-size:11px; }
+    .dimension { margin:11px 0; }
+    .dimension-head { display:flex; justify-content:space-between; gap:12px; font-size:12px; margin-bottom:6px; }
+    .dimension-head strong { white-space:nowrap; }
+    .bar { height:8px; border-radius:999px; background:#e6ebe7; overflow:hidden; }
+    .bar > span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--green),#56a486); }
+    .dimension small { display:block; margin-top:5px; }
+    .list-label { margin:14px 0 7px; font-size:12px; font-weight:800; }
+
+    .section { border-top:1px solid var(--line); padding-top:19px; margin-top:19px; }
+    .section-title { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:13px; }
+    .section-title h3 { margin:0; font-size:15px; }
+    .markdown { line-height:1.72; color:#25302c; }
+    .markdown h1 { font:700 25px/1.25 Georgia,"Songti SC",serif; margin:0 0 18px; }
+    .markdown h2 { font-size:17px; margin:23px 0 8px; }
+    .markdown h3 { font-size:15px; margin:18px 0 7px; }
+    .markdown p { margin:8px 0; }
+    .markdown ul { margin:8px 0; padding-left:21px; }
+    .markdown li { margin:5px 0; }
+    .markdown a { color:var(--green); }
+    details { border:1px solid var(--line); border-radius:13px; background:rgba(255,255,255,.62); margin-top:12px; }
+    summary { cursor:pointer; padding:13px 15px; font-size:13px; font-weight:800; }
+    .details-body { padding:0 15px 15px; }
+    .sources { display:grid; gap:8px; }
+    .source { display:block; color:var(--green); text-decoration:none; border:1px solid var(--line); border-radius:10px; padding:10px; background:#fff; }
+    .source:hover { border-color:var(--green); }
+    .source small { display:block; margin-top:4px; overflow-wrap:anywhere; }
+
+    .flow { display:grid; justify-items:center; gap:9px; padding:5px 0 3px; }
+    .flow-row { display:flex; align-items:center; justify-content:center; gap:9px; width:100%; }
+    .flow-node { min-width:105px; text-align:center; border:1px solid #bfd6cb; background:var(--green-soft); color:var(--green); border-radius:11px; padding:9px; }
+    .flow-node strong { display:block; font-size:12px; }
+    .flow-node small { font-size:10px; }
+    .flow-arrow { color:#95a19b; font-weight:800; }
+    .parallel-label { color:var(--muted); font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
+    .parallel { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; }
+    .parallel .flow-node { min-width:0; }
+    .metrics { display:grid; grid-template-columns:repeat(2,1fr); gap:7px; margin-top:12px; }
+    .metric { display:flex; justify-content:space-between; background:#f4f6f4; border-radius:8px; padding:8px 9px; font-size:12px; }
+    .technical-meta { margin-top:12px; font-size:11px; overflow-wrap:anywhere; }
+
+    @media (max-width:940px) { .layout{grid-template-columns:1fr}.input-card{position:static}.hero-stats{grid-template-columns:1fr 1fr} }
+    @media (max-width:600px) { .shell{width:min(100% - 20px,1240px);padding-top:24px}header{align-items:flex-start;flex-direction:column}.card{padding:18px}.fields,.result-grid,.facts{grid-template-columns:1fr}.wide,.result-panel.full{grid-column:auto}.hero-stats{grid-template-columns:1fr 1fr}.parallel{grid-template-columns:1fr}.metrics{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div><div class="eyebrow">LangGraph · MCP · Job Intelligence</div><h1>岗位分析工作台</h1><p>基于公开来源，解释岗位匹配、公司背景与薪资参考。</p></div>
+      <div class="mode">Fixed Router · V1</div>
+    </header>
+    <div class="layout">
+      <section class="card input-card">
+        <h2>分析输入</h2>
+        <form id="analysisForm">
+          <div class="fields">
+            <div class="field"><label for="userId">用户 ID</label><input id="userId" value="demo-user" required></div>
+            <div class="field"><label for="companyName">公司名称</label><input id="companyName" value="示例科技" required></div>
+            <div class="field"><label for="location">目标城市</label><input id="location" value="上海"></div>
+            <div class="field"><label for="experience">工作经验（年）</label><input id="experience" type="number" min="0" step="0.5" value="3"></div>
+            <div class="field wide"><label for="skills">个人技能</label><input id="skills" value="Java, Spring Boot, MySQL, Redis, Docker"><small>使用中文或英文逗号分隔。</small></div>
+            <div class="field wide"><label for="education">学历</label><input id="education" value="计算机相关硕士"></div>
+            <div class="field wide"><label for="question">希望分析什么</label><input id="question" value="分析岗位匹配度、公司情况和预计薪资"></div>
+            <div class="field wide"><label for="jdText">岗位 JD</label><textarea id="jdText" required>招聘Java后端工程师，要求3年经验，熟悉Java、Spring Boot、MySQL、Redis和Docker，负责核心业务系统设计与开发。</textarea></div>
+            <div class="field wide"><label for="routerMode">Router 模式</label><select id="routerMode"><option value="fixed">Fixed（当前可用）</option><option disabled>LLM（V2 待实现）</option><option disabled>Hybrid（V3 待实现）</option></select></div>
+          </div>
+          <button id="submitButton" type="submit">开始分析</button>
+        </form>
+      </section>
+
+      <section class="card output-card" aria-live="polite">
+        <div id="placeholder" class="placeholder"><div><strong>等待执行</strong>提交后将展示可解释的匹配结果、公司信息与薪资依据。</div></div>
+        <div id="loading" class="placeholder hidden"><div><div class="spinner"></div><strong>Agent 正在协作</strong><span id="loadingText">正在校验输入并解析 JD…</span><div class="loading-flow"><span>Intake</span><span>JD</span><span>Company · Salary · Match</span><span>Report</span></div></div></div>
+        <div id="errorBox" class="error hidden"></div>
+        <div id="result" class="hidden">
+          <div class="hero-stats">
+            <div class="stat"><span>规则匹配分</span><strong id="score">—</strong></div>
+            <div class="stat"><span>投递建议</span><strong id="recommendation">—</strong></div>
+            <div class="stat"><span>薪资参考</span><strong id="salaryStat">—</strong></div>
+            <div class="stat"><span>实际等待</span><strong id="elapsed">—</strong></div>
+          </div>
+          <div class="result-grid">
+            <article class="result-panel full">
+              <div class="panel-head"><h3>匹配度解释</h3><span class="pill confidence medium">规则评分</span></div>
+              <div id="dimensions"></div>
+              <div class="list-label">优势</div><div id="advantages" class="tag-list"></div>
+              <div class="list-label">缺口与待确认项</div><div id="gaps" class="tag-list"></div>
+              <div id="scoringNote" class="notice"></div>
+            </article>
+            <article class="result-panel">
+              <div class="panel-head"><h3>公司画像</h3><span id="companyConfidence" class="pill confidence low">低可信度</span></div>
+              <p id="companySummary" class="company-summary"></p><div id="companyFacts" class="facts"></div><div id="businesses" class="businesses"></div><div id="roleRelevance" class="relevance"></div>
+            </article>
+            <article class="result-panel">
+              <div class="panel-head"><h3>薪资参考</h3><span id="salaryConfidence" class="pill confidence low">低可信度</span></div>
+              <div class="salary-range"><strong id="salaryRange">—</strong><span id="salaryUnit">CNY/月</span></div>
+              <p id="salarySummary" class="muted"></p><div id="salaryMeta" class="meta-row"></div><div id="salaryMethod" class="relevance"></div><div id="salaryCaveats"></div>
+            </article>
+          </div>
+          <section class="section"><div class="section-title"><h3>完整分析报告</h3><span class="muted">已安全渲染 Markdown</span></div><div id="report" class="markdown"></div></section>
+          <details><summary id="sourceSummary">信息来源</summary><div class="details-body"><div id="sources" class="sources"></div></div></details>
+          <details><summary>开发者详情 · Agent 执行链路</summary><div class="details-body">
+            <div class="flow">
+              <div class="flow-row"><div id="flowIntake" class="flow-node"></div><span class="flow-arrow">→</span><div id="flowJd" class="flow-node"></div></div>
+              <div class="flow-arrow">↓</div><div class="parallel-label">parallel fan-out</div>
+              <div class="parallel"><div id="flowCompany" class="flow-node"></div><div id="flowSalary" class="flow-node"></div><div id="flowMatch" class="flow-node"></div></div>
+              <div class="parallel-label">fan-in · wait for all</div><div class="flow-arrow">↓</div><div id="flowReport" class="flow-node"></div>
+            </div>
+            <div id="metrics" class="metrics"></div><div id="technicalMeta" class="technical-meta muted"></div><div id="nodeErrors"></div>
+          </div></details>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const $ = selector => document.querySelector(selector);
+    const form = $('#analysisForm'), button = $('#submitButton');
+    const placeholder = $('#placeholder'), loading = $('#loading'), result = $('#result'), errorBox = $('#errorBox');
+    const value = id => $(`#${id}`).value.trim();
+    const splitList = text => text.split(/[,，]/).map(item => item.trim()).filter(Boolean);
+    const clear = element => { while (element.firstChild) element.removeChild(element.firstChild); };
+    const addText = (parent, tag, text, className) => { const node=document.createElement(tag); node.textContent=text; if(className) node.className=className; parent.appendChild(node); return node; };
+    const money = amount => amount == null ? null : `${Math.round(amount / 1000)}K`;
+    const confidenceText = { high:'高可信度', medium:'中可信度', low:'低可信度' };
+
+    function setConfidence(selector, level) { const node=$(selector); node.className=`pill confidence ${level || 'low'}`; node.textContent=confidenceText[level] || confidenceText.low; }
+
+    function appendInline(parent, text) {
+      const pattern=/(\*\*([^*]+)\*\*|\[([^\]]+)\]\((https?:\/\/[^)]+)\))/g; let cursor=0,match;
+      while((match=pattern.exec(text))!==null){if(match.index>cursor)parent.appendChild(document.createTextNode(text.slice(cursor,match.index)));if(match[2])addText(parent,'strong',match[2]);else{const link=addText(parent,'a',match[3]);link.href=match[4];link.target='_blank';link.rel='noopener noreferrer';}cursor=pattern.lastIndex;}
+      if(cursor<text.length)parent.appendChild(document.createTextNode(text.slice(cursor)));
+    }
+
+    function renderMarkdown(markdown) {
+      const container=$('#report');clear(container);const lines=(markdown||'没有生成报告。').split(/\r?\n/);let list=null;
+      for(const raw of lines){const line=raw.trim();if(!line){list=null;continue;}const heading=line.match(/^(#{1,3})\s+(.+)$/);if(heading){list=null;const node=document.createElement(`h${heading[1].length}`);appendInline(node,heading[2]);container.appendChild(node);continue;}if(line.startsWith('- ')){if(!list){list=document.createElement('ul');container.appendChild(list);}const item=document.createElement('li');appendInline(item,line.slice(2));list.appendChild(item);continue;}list=null;const paragraph=document.createElement('p');appendInline(paragraph,line);container.appendChild(paragraph);}
+    }
+
+    function renderMatch(match) {
+      $('#score').textContent=match?`${match.score}/100`:'—';$('#recommendation').textContent=match?.recommendation||'—';const dimensions=$('#dimensions');clear(dimensions);
+      (match?.score_dimensions||[]).forEach(item=>{const row=addText(dimensions,'div','', 'dimension'),head=addText(row,'div','', 'dimension-head');addText(head,'span',item.label);addText(head,'strong',`${item.score}/${item.max_score}`);const bar=addText(row,'div','', 'bar'),fill=addText(bar,'span','');fill.style.width=`${Math.min(100,item.score/item.max_score*100)}%`;addText(row,'small',item.detail);});
+      const renderTags=(selector,items,gap=false)=>{const box=$(selector);clear(box);(items?.length?items:[gap?'暂未识别明显缺口':'暂无']).forEach(item=>addText(box,'span',item,`tag${gap?' gap':''}`));};renderTags('#advantages',match?.advantages);renderTags('#gaps',match?.gaps,true);$('#scoringNote').textContent=match?.scoring_note||'该分数仅用于结构化字段的初步比较。';
+    }
+
+    function renderCompany(info) {
+      setConfidence('#companyConfidence',info?.confidence);$('#companySummary').textContent=info?.summary||'暂无公司信息。';const facts=$('#companyFacts');clear(facts);
+      [['企业性质',info?.company_type],['总部',info?.headquarters],['员工规模',info?.employee_scale]].forEach(([label,text])=>{if(!text)return;const item=addText(facts,'div','', 'fact');addText(item,'span',label);addText(item,'strong',text);});
+      const businesses=$('#businesses');clear(businesses);(info?.businesses||[]).forEach(item=>addText(businesses,'span',item));$('#roleRelevance').textContent=info?.role_relevance||'公开信息不足，暂时无法判断岗位所属业务。';
+    }
+
+    function renderSalary(info) {
+      setConfidence('#salaryConfidence',info?.confidence);const range=info?.minimum!=null&&info?.maximum!=null?`${money(info.minimum)}–${money(info.maximum)}`:'数据不足';$('#salaryRange').textContent=range;$('#salaryStat').textContent=range;$('#salaryUnit').textContent=`${info?.currency||'CNY'}/${info?.period==='year'?'年':'月'}`;$('#salarySummary').textContent=info?.summary||'暂无薪资信息。';
+      const meta=$('#salaryMeta');clear(meta);[`有效样本 ${info?.sample_count||0}`,`公司相关 ${info?.company_specific_samples||0}`,`招聘平台来源 ${info?.trusted_source_count||0}`,`${info?.location||'地区未知'}`].forEach(item=>addText(meta,'span',item));$('#salaryMethod').textContent=`计算方法：${info?.methodology||'未知'}`;const caveats=$('#salaryCaveats');clear(caveats);(info?.caveats||[]).forEach(item=>addText(caveats,'div',item,'notice'));
+    }
+
+    function renderSources(sources) { const container=$('#sources');clear(container);$('#sourceSummary').textContent=`信息来源 · ${sources.length} 条`;if(!sources.length){addText(container,'small','当前未获取外部来源。');return;}sources.forEach((item,index)=>{const link=addText(container,'a',`${index+1}. ${item.title}`,'source');link.href=item.url;link.target='_blank';link.rel='noopener noreferrer';addText(link,'small',item.url);}); }
+
+    function renderFlow(metrics,elapsed,threadId,errors) {
+      const byNode=Object.fromEntries(metrics.map(item=>[item.node,item]));const labels={intake:'Intake',jd:'Jd',company:'Company',salary:'Salary',match:'Match',report:'Report'};
+      Object.entries(labels).forEach(([key,id])=>{const node=$(`#flow${id}`);clear(node);addText(node,'strong',key==='jd'?'JD':id);addText(node,'small',byNode[key]?`${byNode[key].latency_ms} ms`:'未执行');});
+      const list=$('#metrics');clear(list);metrics.forEach(item=>{const row=addText(list,'div','', 'metric');addText(row,'span',item.node);addText(row,'strong',`${item.latency_ms} ms`);});const work=metrics.reduce((sum,item)=>sum+item.latency_ms,0);$('#technicalMeta').textContent=`实际端到端耗时 ${elapsed} ms · 节点工作量合计 ${work} ms（并行节点不能作为用户等待时间相加） · Thread ${threadId}`;const errorsBox=$('#nodeErrors');clear(errorsBox);(errors||[]).forEach(item=>addText(errorsBox,'div',`${item.node}: ${item.message}`,'error'));
+    }
+
+    let loadingTimer;
+    function startLoadingMessages(){const messages=['正在校验输入并解析 JD…','正在并行搜索公司与薪资信息…','正在计算结构化匹配分…','正在整理来源并生成报告…'];let index=0;$('#loadingText').textContent=messages[0];loadingTimer=setInterval(()=>{$('#loadingText').textContent=messages[Math.min(++index,messages.length-1)];},1800);}
+
+    form.addEventListener('submit',async event=>{
+      event.preventDefault();placeholder.classList.add('hidden');result.classList.add('hidden');errorBox.classList.add('hidden');loading.classList.remove('hidden');button.disabled=true;button.textContent='分析中…';startLoadingMessages();const years=Number(value('experience'));
+      const payload={user_id:value('userId'),company_name:value('companyName'),target_location:value('location')||null,question:value('question'),jd_text:value('jdText'),router_mode:value('routerMode'),user_profile:{preferred_locations:value('location')?[value('location')]:[],skills:splitList(value('skills')),education:value('education')||null,years_of_experience:Number.isFinite(years)?years:null}};
+      try{const response=await fetch('/api/v1/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const body=await response.json();if(!response.ok)throw new Error(body.detail||`请求失败（${response.status}）`);$('#elapsed').textContent=body.elapsed_ms>=1000?`${(body.elapsed_ms/1000).toFixed(1)} s`:`${body.elapsed_ms} ms`;renderMatch(body.match_result);renderCompany(body.company_info);renderSalary(body.salary_info);renderMarkdown(body.final_report);renderSources(body.sources||[]);renderFlow(body.metrics||[],body.elapsed_ms,body.thread_id,body.errors||[]);result.classList.remove('hidden');}
+      catch(error){errorBox.textContent=error.message||String(error);errorBox.classList.remove('hidden');}finally{clearInterval(loadingTimer);loading.classList.add('hidden');button.disabled=false;button.textContent='开始分析';}
+    });
+  </script>
+</body>
+</html>

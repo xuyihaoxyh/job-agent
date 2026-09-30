@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -15,7 +16,11 @@ from app.services.protocols import SearchGateway
 def _json_from_tool_output(value: Any) -> Any:
     if isinstance(value, str):
         try:
-            return json.loads(value)
+            parsed = json.loads(value)
+            # Some MCP adapters JSON-encode a tool's string return value again.
+            # Recursing here supports both a normal JSON payload and that
+            # double-encoded representation.
+            return _json_from_tool_output(parsed) if parsed != value else parsed
         except json.JSONDecodeError:
             return value
     if isinstance(value, dict):
@@ -32,6 +37,13 @@ def _json_from_tool_output(value: Any) -> Any:
             elif isinstance(item, str):
                 text_parts.append(item)
         if text_parts:
+            parsed_parts = [_json_from_tool_output(part) for part in text_parts]
+            if all(isinstance(part, dict) for part in parsed_parts):
+                return parsed_parts
+            if all(isinstance(part, list) for part in parsed_parts):
+                return [item for part in parsed_parts for item in part]
+            if len(parsed_parts) == 1:
+                return parsed_parts[0]
             return _json_from_tool_output("".join(text_parts))
     return value
 
@@ -49,6 +61,14 @@ class MCPSearchGateway(SearchGateway):
         for server in config.values():
             if server.get("command") in {"python", "python3"}:
                 server["command"] = sys.executable
+            # The MCP stdio client starts a separate child process and only
+            # forwards a restricted environment by default. Inject the search
+            # credential at runtime instead of storing it in servers.json.
+            tavily_api_key = os.getenv("TAVILY_API_KEY")
+            if tavily_api_key:
+                server.setdefault("env", {}).setdefault(
+                    "TAVILY_API_KEY", tavily_api_key
+                )
         client = MultiServerMCPClient(config)
         tools = await client.get_tools()
         for tool in tools:

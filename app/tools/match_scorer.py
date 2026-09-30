@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.schemas.domain import JDInfo, MatchResult, UserProfile
+from app.schemas.domain import JDInfo, MatchResult, MatchScoreDimension, UserProfile
 
 
 def _normalized(values: list[str]) -> dict[str, str]:
@@ -50,5 +50,41 @@ def score_match(jd: JDInfo, profile: UserProfile) -> MatchResult:
         gaps=gaps,
         matched_skills=[required[key] for key in matched_keys],
         missing_skills=[required[key] for key in missing_keys],
+        score_dimensions=[
+            MatchScoreDimension(
+                key="skills",
+                label="技能匹配",
+                score=skill_score,
+                max_score=70,
+                detail=(
+                    f"匹配 {len(matched_keys)}/{len(required)} 项明确技能"
+                    if required
+                    else "JD 未识别出明确技能，使用中性基础分"
+                ),
+            ),
+            MatchScoreDimension(
+                key="experience",
+                label="经验匹配",
+                score=experience_score,
+                max_score=20,
+                detail=(
+                    f"个人资料 {profile.years_of_experience or 0:g} 年 / "
+                    f"JD 要求 {jd.min_experience_years:g} 年"
+                    if jd.min_experience_years is not None
+                    else "JD 未明确最低工作年限"
+                ),
+            ),
+            MatchScoreDimension(
+                key="education",
+                label="学历信息",
+                score=education_score,
+                max_score=10,
+                detail=(
+                    f"个人资料：{profile.education or '未提供'}；JD："
+                    f"{'/'.join(jd.education_requirements)}"
+                    if jd.education_requirements
+                    else "JD 未明确学历要求"
+                ),
+            ),
+        ],
     )
-

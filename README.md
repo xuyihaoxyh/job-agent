@@ -1,6 +1,6 @@
 # Job Analysis Agent
 
-一个只包含后端的学习项目，用显式 LangGraph 工作流完成 JD 分析、公司搜索、薪资搜索、候选人匹配和报告生成。
+一个 LangGraph 学习项目，用显式工作流完成 JD 分析、公司搜索、薪资搜索、候选人匹配和报告生成，并提供用于人工验证的轻量 Web 页面。
 
 ## 当前范围
 
@@ -12,6 +12,24 @@
 4. FastAPI、SQLite Checkpointer 和长期用户资料
 
 Hybrid Router、LLM Router 和 Skills 暂未加入，它们属于后续里程碑。
+
+## Web 人工验证
+
+启动服务后访问：
+
+```text
+http://localhost:8000/
+```
+
+如果使用 Docker，默认地址为：
+
+```text
+http://localhost:8001/
+```
+
+页面可以提交 JD、公司和个人资料，并展示 Fixed Router 的执行顺序、各节点耗时、匹配分、来源与最终报告。LLM 和 Hybrid 选项暂时禁用，等对应 Router 实现后再开放。
+
+当前结果页还会展示规则评分维度、结构化公司画像、薪资样本数与可信度。开发者详情中的端到端耗时是用户实际等待时间；Company、Salary、Match 的节点耗时属于并行工作量，不能直接相加作为等待时间。
 
 ## 架构
 
@@ -55,6 +73,14 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 cp .env.example .env
 uvicorn app.main:app --reload --env-file .env
+```
+
+如果 `.env` 使用 Docker 内路径 `/app/data/*.db`，本地启动时需要覆盖为项目内路径：
+
+```bash
+CHECKPOINT_DB="$PWD/data/checkpoints.db" \
+APP_DB="$PWD/data/app.db" \
+python -m uvicorn app.main:app --reload --env-file .env
 ```
 
 默认配置完全离线：
@@ -160,3 +186,25 @@ pytest
 - 本地匹配和薪资工具
 - SQLite 用户资料读写
 - FastAPI 分析与 thread 恢复
+- Web 页面入口和 API 指标字段
+- 评估数据集与路由指标计算
+
+## 路由评估基线
+
+`evaluations/cases.json` 保存 Router 无关的固定测试集。每条用例标注理想情况下最少需要执行的 Agent，因此可以公平比较 Fixed、LLM 和 Hybrid，而不是为 Fixed 单独降低标准。
+
+运行当前 Fixed 基线：
+
+```bash
+python -m app.evaluation.runner
+```
+
+控制台会输出任务成功率、路由 Precision/Recall、完全匹配率、延迟和 Token 指标；逐条结果写入 `evaluations/results/fixed.jsonl`，该运行产物默认不提交 Git。
+
+主要指标：
+
+- `task_success_rate`：要求的输出字段和来源是否完整。
+- `route_precision`：实际执行的 Agent 中有多少是必要的，可反映冗余调用。
+- `route_recall`：必要 Agent 是否都被执行。
+- `exact_route_match`：实际与理想 Agent 集合是否完全一致。
+- `total_latency_ms`、`token_usage`：性能和模型成本。

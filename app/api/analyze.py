@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from time import perf_counter
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -25,6 +26,7 @@ def _route_history(values: dict[str, Any]) -> list[str]:
 
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze(payload: AnalyzeRequest, request: Request) -> AnalyzeResponse:
+    request_started_at = perf_counter()
     graph = request.app.state.graph
     profiles = request.app.state.profiles
     thread_id = payload.thread_id or str(uuid.uuid4())
@@ -49,6 +51,9 @@ async def analyze(payload: AnalyzeRequest, request: Request) -> AnalyzeResponse:
         salary_info=result.get("salary_info"),
         sources=result.get("sources", []),
         route_history=_route_history(result),
+        metrics=result.get("metrics", []),
+        step_count=result.get("step_count", 0),
+        elapsed_ms=max(0, round((perf_counter() - request_started_at) * 1000)),
         final_report=result.get("final_report"),
         errors=jsonable_encoder(result.get("errors", [])),
     )
@@ -67,4 +72,3 @@ async def get_thread(thread_id: str, request: Request) -> ThreadStateResponse:
         values=jsonable_encoder(snapshot.values),
         next_nodes=list(snapshot.next),
     )
-

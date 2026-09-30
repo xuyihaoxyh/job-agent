@@ -2,6 +2,7 @@ from app.schemas.domain import (
     CompanyInfo,
     JDInfo,
     MatchResult,
+    MatchScoreDimension,
     NodeError,
     NodeMetric,
     RouteEvent,
@@ -15,6 +16,7 @@ __all__ = [
     "CompanyInfo",
     "JDInfo",
     "MatchResult",
+    "MatchScoreDimension",
     "NodeError",
     "NodeMetric",
     "RouteEvent",
@@ -23,4 +25,3 @@ __all__ = [
     "Source",
     "UserProfile",
 ]
-
