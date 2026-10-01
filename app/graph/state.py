@@ -23,6 +23,8 @@ class JobAnalysisState(TypedDict, total=False):
     question: str
     jd_text: str
     company_name: str
+    job_title: str | None
+    employment_type: Literal["social", "campus", "intern"]
     user_profile: UserProfile
     target_location: str | None
     currency: str
@@ -42,4 +44,3 @@ class JobAnalysisState(TypedDict, total=False):
 
     final_report: str
     status: Literal["running", "completed", "failed"]
-

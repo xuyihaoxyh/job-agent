@@ -6,7 +6,7 @@ from app.graph.dependencies import GraphDependencies
 from app.graph.nodes.common import completed, timer
 from app.graph.state import JobAnalysisState
 from app.schemas.domain import CompanyInfo, NodeError, RouteEvent, Source
-from app.tools.company_analyzer import build_company_info
+from app.tools.company_analyzer import build_company_info, filter_company_results
 
 
 def _source_id(url: str, index: int) -> str:
@@ -25,7 +25,8 @@ def make_company_node(deps: GraphDependencies):
         company_name = state["company_name"]
         query = f"{company_name} 公司 官网 业务 规模"
         try:
-            results = await deps.search.search(query, max_results=5)
+            raw_results = await deps.search.search(query, max_results=5)
+            results = filter_company_results(company_name, raw_results)
             sources = [
                 Source(
                     id=_source_id(result.url, index),

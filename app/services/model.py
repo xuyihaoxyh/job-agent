@@ -44,6 +44,10 @@ class DeterministicAnalysisModel:
     async def extract_jd(self, jd_text: str) -> JDInfo:
         lowered = jd_text.lower()
         skills = [skill for skill in KNOWN_SKILLS if skill.lower() in lowered]
+        years_range_match = re.search(
+            r"(\d+(?:\.\d+)?)\s*[-–—~至]\s*(\d+(?:\.\d+)?)\s*年",
+            jd_text,
+        )
         years_match = re.search(r"(\d+(?:\.\d+)?)\s*年", jd_text)
         responsibilities = [
             part.strip(" -•\t")
@@ -54,7 +58,13 @@ class DeterministicAnalysisModel:
         return JDInfo(
             role_name=role_match.group(0) if role_match else None,
             required_skills=skills,
-            min_experience_years=float(years_match.group(1)) if years_match else None,
+            min_experience_years=(
+                float(years_range_match.group(1))
+                if years_range_match
+                else float(years_match.group(1))
+                if years_match
+                else None
+            ),
             education_requirements=[
                 degree for degree in ["本科", "硕士", "博士"] if degree in jd_text
             ],
@@ -81,6 +91,27 @@ class DeterministicAnalysisModel:
             if salary_info.minimum is not None and salary_info.maximum is not None
             else "未找到足够可靠的数据"
         )
+        salary_scope = {
+            "company": "目标公司相关岗位",
+            "market": "同地区同岗位市场参考（降级结果）",
+            "insufficient": "信息不足",
+        }[salary_info.data_scope]
+        role_source = {
+            "user": "用户填写",
+            "jd": "JD 提取",
+            "inferred": "系统推断",
+            None: "未知",
+        }[salary_info.role_source]
+        employment_type = {
+            "social": "常规社招",
+            "campus": "校园招聘",
+            "intern": "实习招聘",
+        }[salary_info.employment_type]
+        salary_search_lines = [
+            f"- 搜索过程：{attempt.scope} 检索返回 {attempt.raw_result_count} 条，"
+            f"采纳 {attempt.accepted_result_count} 条"
+            for attempt in salary_info.search_attempts
+        ]
         company_details = [
             company_info.summary,
             *(
@@ -104,6 +135,7 @@ class DeterministicAnalysisModel:
                 else []
             ),
             *([f"- 岗位关联：{company_info.role_relevance}"] if company_info.role_relevance else []),
+            *[f"- 注意：{item}" for item in company_info.caveats],
         ]
         score_lines = [
             f"- {dimension.label}：{dimension.score}/{dimension.max_score}（{dimension.detail}）"
@@ -127,8 +159,12 @@ class DeterministicAnalysisModel:
                 "",
                 "## 薪资信息",
                 f"{salary_range}。{salary_info.summary}",
-                f"- 有效样本：{salary_info.sample_count} 个",
+                f"- 数据范围：{salary_scope}",
+                f"- 检索岗位：{salary_info.role_name or '未知'}（{role_source}）",
+                f"- 招聘类型：{employment_type}",
+                f"- 有效薪资区间：{salary_info.sample_count} 个",
                 f"- 计算方法：{salary_info.methodology}",
+                *salary_search_lines,
                 *[f"- 注意：{item}" for item in salary_info.caveats],
                 "",
                 "## 来源",
@@ -168,7 +204,11 @@ class OpenAIAnalysisModel:
             "question": question,
             "jd_info": jd_info.model_dump(mode="json"),
             "company_info": company_info.model_dump(mode="json"),
-            "salary_info": salary_info.model_dump(mode="json"),
+            # Raw search attempts are diagnostic evidence for the UI. They may
+            # contain rejected results and must never be summarized as facts.
+            "salary_info": salary_info.model_dump(
+                mode="json", exclude={"search_attempts"}
+            ),
             "match_result": match_result.model_dump(mode="json"),
             "user_profile": user_profile.model_dump(mode="json"),
         }
@@ -177,7 +217,10 @@ class OpenAIAnalysisModel:
                 (
                     "system",
                     "你是求职分析报告编辑。只能汇总输入JSON中的事实，不得添加新事实。"
-                    "所有公司和薪资事实必须保留对应来源ID；缺失信息明确写未知。",
+                    "所有公司和薪资事实必须保留对应来源ID；缺失信息明确写未知。"
+                    "当公司或薪资confidence为low且sources为空时，只能表述为无法验证或信息不足，"
+                    "不得推断公司存在、不存在、企业性质、业务、规模或薪资。"
+                    "搜索不到信息不等于目标不存在。",
                 ),
                 ("human", json.dumps(payload, ensure_ascii=False)),
             ]

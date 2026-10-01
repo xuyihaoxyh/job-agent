@@ -18,6 +18,51 @@ _BUSINESS_KEYWORDS = {
     "物流": ("物流", "供应链"),
 }
 
+_LEGAL_SUFFIXES = (
+    "股份有限公司",
+    "有限责任公司",
+    "集团有限公司",
+    "有限公司",
+    "股份公司",
+    "集团",
+    "公司",
+)
+
+
+def _normalize_entity_name(value: str) -> str:
+    return re.sub(r"[^0-9a-z\u4e00-\u9fff]+", "", value.casefold())
+
+
+def _company_name_variants(company_name: str) -> set[str]:
+    normalized = _normalize_entity_name(company_name)
+    variants = {normalized} if normalized else set()
+    for suffix in _LEGAL_SUFFIXES:
+        normalized_suffix = _normalize_entity_name(suffix)
+        if normalized.endswith(normalized_suffix):
+            base = normalized[: -len(normalized_suffix)]
+            if len(base) >= 2:
+                variants.add(base)
+            break
+    return variants
+
+
+def result_mentions_company(result: SearchResult, company_name: str) -> bool:
+    """Return whether a result explicitly names the requested company.
+
+    Search ranking is semantic, so appearing in a result set does not prove the
+    page is about the target entity. Exact normalized name/alias presence is the
+    minimum evidence gate before any company fact may be extracted.
+    """
+
+    haystack = _normalize_entity_name(f"{result.title} {result.snippet}")
+    return any(variant in haystack for variant in _company_name_variants(company_name))
+
+
+def filter_company_results(
+    company_name: str, results: list[SearchResult]
+) -> list[SearchResult]:
+    return [result for result in results if result_mentions_company(result, company_name)]
+
 
 def _clean_text(value: str, *, limit: int = 420) -> str:
     text = re.sub(r"\[\.\.\.\]|\.{3,}", "", value)
@@ -80,7 +125,24 @@ def build_company_info(
     results: list[SearchResult],
     sources: list[Source],
 ) -> CompanyInfo:
-    ranked = sorted(results, key=_source_quality, reverse=True)
+    # Defense in depth: callers should filter first so sources stay aligned,
+    # while the analyzer also refuses unrelated results when used directly.
+    relevant_results = filter_company_results(company_name, results)
+    relevant_urls = {result.url for result in relevant_results}
+    relevant_sources = [source for source in sources if source.url in relevant_urls]
+    ranked = sorted(relevant_results, key=_source_quality, reverse=True)
+    if not ranked:
+        return CompanyInfo(
+            company_name=company_name,
+            summary=f"未找到能够明确对应“{company_name}”的可靠公开信息。",
+            role_relevance="公司主体尚未得到公开来源验证，无法判断岗位所属业务。",
+            caveats=[
+                "搜索不到相关信息不代表公司不存在，可能是名称不完整、同名或公开信息较少。",
+                "建议补充公司全称、官网、招聘页面或所在城市后重新分析。",
+            ],
+            confidence="low",
+            sources=[],
+        )
     combined = " ".join(result.snippet for result in ranked if result.snippet)
     facts = [_clean_text(result.snippet) for result in ranked if result.snippet][:3]
 
@@ -119,14 +181,17 @@ def build_company_info(
         if businesses
         else f"当前分析岗位为{role_name}，但公开搜索结果不足以判断具体业务归属。"
     )
-    has_high_quality_source = any(_source_quality(result) >= 4 for result in results)
+    has_high_quality_source = any(_source_quality(result) >= 4 for result in ranked)
     confidence = (
         "high"
-        if len(sources) >= 3 and has_high_quality_source
+        if len(relevant_sources) >= 3 and has_high_quality_source
         else "medium"
-        if len(sources) >= 2
+        if len(relevant_sources) >= 2
         else "low"
     )
+    caveats = ["员工规模和财务数据可能对应不同披露期，请以最新官方材料为准。"]
+    if len(relevant_sources) < 2:
+        caveats.append("当前仅有单一相关来源，尚不足以完成交叉验证。")
     return CompanyInfo(
         company_name=company_name,
         summary=summary,
@@ -135,8 +200,8 @@ def build_company_info(
         businesses=businesses,
         employee_scale=employee_scale,
         role_relevance=role_relevance,
-        caveats=["员工规模和财务数据可能对应不同披露期，请以最新官方材料为准。"],
+        caveats=caveats,
         facts=facts,
         confidence=confidence,
-        sources=sources,
+        sources=relevant_sources,
     )

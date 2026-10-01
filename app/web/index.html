@@ -102,6 +102,7 @@
     .result-panel { border:1px solid var(--line); background:#fff; border-radius:14px; padding:18px; }
     .result-panel.full { grid-column:1/-1; }
     .panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .panel-badges { display:flex; align-items:center; justify-content:flex-end; gap:6px; flex-wrap:wrap; }
     .panel-title { display:flex; align-items:center; gap:8px; }
     .panel-title > .icon { width:17px; height:17px; color:var(--brand); }
     .panel-head h3 { margin:0; font-size:14px; letter-spacing:-.01em; }
@@ -109,6 +110,9 @@
     .confidence.high { color:#14603f; background:#dcf0e5; }
     .confidence.medium { color:#87531c; background:#faecd5; }
     .confidence.low { color:#923a30; background:#f8dfdb; }
+    .scope { padding:5px 8px; color:var(--blue); background:var(--blue-soft); }
+    .scope.company { color:var(--brand); background:var(--brand-soft); }
+    .scope.insufficient { color:var(--muted); background:#edf0ef; }
     .company-summary { margin:0 0 14px; line-height:1.68; color:var(--ink-2); }
     .facts { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
     .fact { background:var(--surface-2); border:1px solid #edf1ef; border-radius:9px; padding:10px; }
@@ -171,6 +175,13 @@
     .metric { display:flex; justify-content:space-between; border:1px solid var(--line); background:var(--surface-2); border-radius:8px; padding:8px 9px; font-size:10px; }
     .metric strong { font-variant-numeric:tabular-nums; }
     .technical-meta { margin-top:12px; font-size:10px; overflow-wrap:anywhere; line-height:1.6; }
+    .search-trace { margin-top:12px; background:var(--surface-2); }
+    .search-attempt { padding:11px 0; border-bottom:1px solid var(--line); }
+    .search-attempt:last-child { border-bottom:0; padding-bottom:0; }
+    .attempt-head { display:flex; justify-content:space-between; gap:10px; font-size:11px; font-weight:730; }
+    .attempt-query { margin:5px 0 8px; color:var(--muted); font-size:10px; overflow-wrap:anywhere; }
+    .raw-source { display:block; padding:5px 0; color:var(--ink-2); text-decoration:none; font-size:10px; overflow-wrap:anywhere; }
+    .raw-source:hover { color:var(--brand); }
     @media (max-width:1100px) { .shell{width:min(100% - 32px,1420px)}.layout{grid-template-columns:minmax(330px,380px) minmax(0,1fr)}.hero-stats{grid-template-columns:1fr 1fr}.result-grid{grid-template-columns:1fr}.result-panel.full{grid-column:auto} }
     @media (max-width:860px) { .layout{grid-template-columns:1fr}.input-card{position:static}.hero-note{display:none}.output-card{min-height:520px}.placeholder{min-height:480px} }
     @media (max-width:560px) { .shell{width:min(100% - 20px,1420px)}.topbar{height:60px}.top-status>.status-dot{display:none}.hero{padding:28px 2px 20px}.hero p{font-size:13px}.card-head,form{padding-left:16px;padding-right:16px}.fields,.facts{grid-template-columns:1fr}.wide{grid-column:auto}.output-card{padding:12px}.hero-stats{grid-template-columns:1fr 1fr}.stat{min-height:98px;padding:12px}.stat strong{font-size:17px}.parallel{grid-template-columns:1fr;max-width:230px}.flow-row{flex-direction:column}.flow-row>.flow-arrow{transform:rotate(90deg)}.metrics{grid-template-columns:1fr 1fr}.section{padding:15px}.result-kicker{align-items:flex-start;flex-direction:column} }
@@ -210,7 +221,8 @@
             <div class="fields">
               <div class="field"><label for="companyName">公司名称 *</label><input id="companyName" value="示例科技" required></div>
               <div class="field"><label for="location">目标城市</label><input id="location" value="上海"></div>
-              <div class="field wide"><label for="question">分析目标</label><input id="question" value="分析岗位匹配度、公司情况和预计薪资"></div>
+              <div class="field"><label for="jobTitle">岗位名称</label><input id="jobTitle" placeholder="例如：广告 AI 应用研发工程师"></div>
+              <div class="field"><label for="employmentType">招聘类型</label><select id="employmentType"><option value="social" selected>常规社招</option><option value="campus">校园招聘</option><option value="intern">实习招聘</option></select></div>
               <div class="field wide"><label for="jdText">岗位 JD *</label><textarea id="jdText" required>招聘Java后端工程师，要求3年经验，熟悉Java、Spring Boot、MySQL、Redis和Docker，负责核心业务系统设计与开发。</textarea><small>建议粘贴完整职责与任职要求，结果会更准确。</small></div>
             </div>
           </div>
@@ -253,12 +265,12 @@
             </article>
             <article class="result-panel">
               <div class="panel-head"><div class="panel-title"><svg class="icon"><use href="#i-building"/></svg><h3>公司画像</h3></div><span id="companyConfidence" class="pill confidence low">低可信度</span></div>
-              <p id="companySummary" class="company-summary"></p><div id="companyFacts" class="facts"></div><div id="businesses" class="businesses"></div><div id="roleRelevance" class="relevance"></div>
+              <p id="companySummary" class="company-summary"></p><div id="companyFacts" class="facts"></div><div id="businesses" class="businesses"></div><div id="roleRelevance" class="relevance"></div><div id="companyCaveats"></div>
             </article>
             <article class="result-panel">
-              <div class="panel-head"><div class="panel-title"><svg class="icon"><use href="#i-wallet"/></svg><h3>薪资参考</h3></div><span id="salaryConfidence" class="pill confidence low">低可信度</span></div>
+              <div class="panel-head"><div class="panel-title"><svg class="icon"><use href="#i-wallet"/></svg><h3>薪资参考</h3></div><div class="panel-badges"><span id="salaryScope" class="pill scope insufficient">信息不足</span><span id="salaryConfidence" class="pill confidence low">低可信度</span></div></div>
               <div class="salary-range"><strong id="salaryRange">—</strong><span id="salaryUnit">CNY/月</span></div>
-              <p id="salarySummary" class="muted"></p><div id="salaryMeta" class="meta-row"></div><div id="salaryMethod" class="relevance"></div><div id="salaryCaveats"></div>
+              <p id="salarySummary" class="muted"></p><div id="salaryMeta" class="meta-row"></div><div id="salaryMethod" class="relevance"></div><div id="salaryCaveats"></div><div id="salarySearchTrace"></div>
             </article>
           </div>
           <section class="section"><div class="section-title"><h3><svg class="icon"><use href="#i-file"/></svg>完整分析报告</h3><span class="muted">安全渲染 Markdown</span></div><div id="report" class="markdown"></div></section>
@@ -310,12 +322,17 @@
     function renderCompany(info) {
       setConfidence('#companyConfidence',info?.confidence);$('#companySummary').textContent=info?.summary||'暂无公司信息。';const facts=$('#companyFacts');clear(facts);
       [['企业性质',info?.company_type],['总部',info?.headquarters],['员工规模',info?.employee_scale]].forEach(([label,text])=>{if(!text)return;const item=addText(facts,'div','', 'fact');addText(item,'span',label);addText(item,'strong',text);});
-      const businesses=$('#businesses');clear(businesses);(info?.businesses||[]).forEach(item=>addText(businesses,'span',item));$('#roleRelevance').textContent=info?.role_relevance||'公开信息不足，暂时无法判断岗位所属业务。';
+      const businesses=$('#businesses');clear(businesses);(info?.businesses||[]).forEach(item=>addText(businesses,'span',item));$('#roleRelevance').textContent=info?.role_relevance||'公开信息不足，暂时无法判断岗位所属业务。';const caveats=$('#companyCaveats');clear(caveats);(info?.caveats||[]).forEach(item=>addText(caveats,'div',item,'notice'));
     }
 
     function renderSalary(info) {
-      setConfidence('#salaryConfidence',info?.confidence);const range=info?.minimum!=null&&info?.maximum!=null?`${money(info.minimum)}–${money(info.maximum)}`:'数据不足';$('#salaryRange').textContent=range;$('#salaryStat').textContent=range;$('#salaryUnit').textContent=`${info?.currency||'CNY'}/${info?.period==='year'?'年':'月'}`;$('#salarySummary').textContent=info?.summary||'暂无薪资信息。';
-      const meta=$('#salaryMeta');clear(meta);[`有效样本 ${info?.sample_count||0}`,`公司相关 ${info?.company_specific_samples||0}`,`招聘平台来源 ${info?.trusted_source_count||0}`,`${info?.location||'地区未知'}`].forEach(item=>addText(meta,'span',item));$('#salaryMethod').textContent=`计算方法：${info?.methodology||'未知'}`;const caveats=$('#salaryCaveats');clear(caveats);(info?.caveats||[]).forEach(item=>addText(caveats,'div',item,'notice'));
+      setConfidence('#salaryConfidence',info?.confidence);const scopeMap={company:'公司相关',market:'市场降级',insufficient:'信息不足'},scope=info?.data_scope||'insufficient',scopeNode=$('#salaryScope');scopeNode.className=`pill scope ${scope}`;scopeNode.textContent=scopeMap[scope]||scopeMap.insufficient;const range=info?.minimum!=null&&info?.maximum!=null?`${money(info.minimum)}–${money(info.maximum)}`:'数据不足';$('#salaryRange').textContent=range;$('#salaryStat').textContent=range;$('#salaryUnit').textContent=`${info?.currency||'CNY'}/${info?.period==='year'?'年':'月'}`;$('#salarySummary').textContent=info?.summary||'暂无薪资信息。';
+      const employmentMap={social:'常规社招',campus:'校园招聘',intern:'实习招聘'},roleSourceMap={user:'用户填写',jd:'JD 提取',inferred:'系统推断'};const meta=$('#salaryMeta');clear(meta);[`检索岗位 ${info?.role_name||'未知'}`,`${roleSourceMap[info?.role_source]||'来源未知'}`,`${employmentMap[info?.employment_type]||'招聘类型未知'}`,`有效区间 ${info?.sample_count||0}`,`公司相关 ${info?.company_specific_samples||0}`,`招聘平台来源 ${info?.trusted_source_count||0}`,`${info?.location||'地区未知'}`].forEach(item=>addText(meta,'span',item));$('#salaryMethod').textContent=`计算方法：${info?.methodology||'未知'}`;const caveats=$('#salaryCaveats');clear(caveats);(info?.caveats||[]).forEach(item=>addText(caveats,'div',item,'notice'));renderSalarySearchTrace(info?.search_attempts||[]);
+    }
+
+    function renderSalarySearchTrace(attempts) {
+      const container=$('#salarySearchTrace');clear(container);if(!attempts.length)return;const details=addText(container,'details','', 'search-trace'),summary=addText(details,'summary',`原始搜索过程 · ${attempts.length} 次`),body=addText(details,'div','', 'details-body');
+      attempts.forEach((attempt,index)=>{const item=addText(body,'div','', 'search-attempt'),head=addText(item,'div','', 'attempt-head');addText(head,'span',attempt.scope==='company'?'① 公司专属检索':'② 市场降级检索');addText(head,'span',`返回 ${attempt.raw_result_count} · 采纳 ${attempt.accepted_result_count}`);addText(item,'div',attempt.query,'attempt-query');(attempt.sources||[]).forEach((source,sourceIndex)=>{const link=addText(item,'a',`${sourceIndex+1}. ${source.title}`,'raw-source');link.href=source.url;link.target='_blank';link.rel='noopener noreferrer';});});
     }
 
     function renderSources(sources) { const container=$('#sources');clear(container);$('#sourceSummary').textContent=`信息来源 · ${sources.length} 条`;if(!sources.length){addText(container,'small','当前未获取外部来源。');return;}sources.forEach((item,index)=>{const link=addText(container,'a',`${index+1}. ${item.title}`,'source');link.href=item.url;link.target='_blank';link.rel='noopener noreferrer';addText(link,'small',item.url);}); }
@@ -331,7 +348,7 @@
 
     form.addEventListener('submit',async event=>{
       event.preventDefault();placeholder.classList.add('hidden');result.classList.add('hidden');errorBox.classList.add('hidden');loading.classList.remove('hidden');button.disabled=true;buttonLabel.textContent='分析中…';startLoadingMessages();const years=Number(value('experience'));
-      const payload={user_id:value('userId'),company_name:value('companyName'),target_location:value('location')||null,question:value('question'),jd_text:value('jdText'),router_mode:value('routerMode'),user_profile:{preferred_locations:value('location')?[value('location')]:[],skills:splitList(value('skills')),education:value('education')||null,years_of_experience:Number.isFinite(years)?years:null}};
+      const payload={user_id:value('userId'),company_name:value('companyName'),job_title:value('jobTitle')||null,employment_type:value('employmentType'),target_location:value('location')||null,question:'分析岗位匹配度、公司情况和预计薪资',jd_text:value('jdText'),router_mode:value('routerMode'),user_profile:{preferred_locations:value('location')?[value('location')]:[],skills:splitList(value('skills')),education:value('education')||null,years_of_experience:Number.isFinite(years)?years:null}};
       try{const response=await fetch('/api/v1/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const body=await response.json();if(!response.ok)throw new Error(body.detail||`请求失败（${response.status}）`);$('#elapsed').textContent=body.elapsed_ms>=1000?`${(body.elapsed_ms/1000).toFixed(1)} s`:`${body.elapsed_ms} ms`;renderMatch(body.match_result);renderCompany(body.company_info);renderSalary(body.salary_info);renderMarkdown(body.final_report);renderSources(body.sources||[]);renderFlow(body.metrics||[],body.elapsed_ms,body.thread_id,body.errors||[]);result.classList.remove('hidden');}
       catch(error){errorBox.textContent=error.message||String(error);errorBox.classList.remove('hidden');}finally{clearInterval(loadingTimer);loading.classList.add('hidden');button.disabled=false;buttonLabel.textContent='开始分析';}
     });

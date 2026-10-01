@@ -57,8 +57,18 @@ class CompanyInfo(BaseModel):
     sources: list[Source] = Field(default_factory=list)
 
 
+class SalarySearchAttempt(BaseModel):
+    scope: Literal["company", "market"]
+    query: str
+    raw_result_count: int = Field(ge=0)
+    accepted_result_count: int = Field(ge=0)
+    sources: list[Source] = Field(default_factory=list)
+
+
 class SalaryInfo(BaseModel):
     role_name: str | None = None
+    role_source: Literal["user", "jd", "inferred"] | None = None
+    employment_type: Literal["social", "campus", "intern"] = "social"
     location: str | None = None
     minimum: int | None = Field(default=None, ge=0)
     maximum: int | None = Field(default=None, ge=0)
@@ -71,6 +81,9 @@ class SalaryInfo(BaseModel):
     methodology: str = "未获得足够样本"
     caveats: list[str] = Field(default_factory=list)
     confidence: Literal["low", "medium", "high"] = "low"
+    data_scope: Literal["company", "market", "insufficient"] = "insufficient"
+    fallback_used: bool = False
+    search_attempts: list[SalarySearchAttempt] = Field(default_factory=list)
     sources: list[Source] = Field(default_factory=list)
 
 

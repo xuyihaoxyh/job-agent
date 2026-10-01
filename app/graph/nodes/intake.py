@@ -26,6 +26,8 @@ def make_intake_node(deps: GraphDependencies):
         return {
             "jd_text": jd_text,
             "company_name": company_name,
+            "job_title": (state.get("job_title") or "").strip() or None,
+            "employment_type": state.get("employment_type", "social"),
             "user_profile": profile,
             "target_location": state.get("target_location")
             or (profile.preferred_locations[0] if profile.preferred_locations else None),

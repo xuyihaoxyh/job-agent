@@ -55,6 +55,20 @@ flowchart TD
 
 Company、Salary、Match 在 JD 完成后并行，Report 等待三条分支全部结束。
 
+### 搜索证据约束
+
+MCP 搜索结果在进入结构化提取前会先进行相关性校验：
+
+- 公司事实只接受明确出现目标公司名称或完整公司名称别名的结果。
+- 薪资样本必须同时匹配目标岗位和目标城市；目标公司用于进一步标记公司专属样本。
+- 请求可以显式传入 `job_title` 和 `employment_type`；JD 无标题时只为搜索生成带提示的岗位推断。
+- 常规社招、校园招聘和实习结果分开过滤，避免不同招聘类型混算。
+- 公司专属薪资没有有效样本时，自动降级为同城市同岗位市场薪资，并明确标记数据范围。
+- 两阶段搜索的原始标题、链接、返回数和采纳数会保留在结果页，但未采纳结果不进入事实来源。
+- 无关结果不会进入最终来源，也不会参与可信度和薪资区间计算。
+- 没有合格证据时返回“无法验证/信息不足”；搜索不到不等于公司不存在。
+- Report 只能汇总经过过滤的结构化字段，无来源时不得补写公司或薪资事实。
+
 ## 数据存储
 
 ```text
@@ -126,6 +140,8 @@ curl -X POST http://localhost:8001/api/v1/analyze \
     "user_id": "user_001",
     "jd_text": "招聘Java后端工程师，要求3年经验，熟悉Java、Spring Boot、MySQL、Redis和Docker，负责核心业务系统设计与开发。",
     "company_name": "示例科技",
+    "job_title": "Java后端工程师",
+    "employment_type": "social",
     "question": "分析岗位匹配度和预计薪资",
     "target_location": "上海",
     "router_mode": "fixed",
@@ -183,6 +199,7 @@ pytest
 - 六个节点完整执行
 - Company 和 Salary 并行执行
 - MCP 搜索失败后的降级报告
+- 无关搜索结果的实体与岗位相关性过滤
 - 本地匹配和薪资工具
 - SQLite 用户资料读写
 - FastAPI 分析与 thread 恢复

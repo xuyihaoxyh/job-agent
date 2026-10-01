@@ -26,7 +26,7 @@ def search_results() -> list[SearchResult]:
             snippet="示例科技是一家企业软件服务商，主要服务金融和零售客户。",
         ),
         SearchResult(
-            title="上海Java后端招聘 18K-25K",
+            title="示例科技上海Java后端招聘 18K-25K",
             url="https://example.com/job-1",
             snippet="3-5年经验，月薪18K-25K。",
         ),
@@ -36,4 +36,3 @@ def search_results() -> list[SearchResult]:
             snippet="上海Java开发岗位月薪16K-22K。",
         ),
     ]
-

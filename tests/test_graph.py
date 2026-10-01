@@ -105,3 +105,96 @@ async def test_search_failure_produces_degraded_report(profile):
     assert result["company_info"].confidence == "low"
     assert result["salary_info"].confidence == "low"
 
+
+@pytest.mark.asyncio
+async def test_unrelated_search_results_produce_information_insufficient(profile):
+    unrelated_results = [
+        SearchResult(
+            title="腾讯云解决方案",
+            url="https://cloud.tencent.com/solution",
+            snippet="腾讯提供云计算、游戏、社交和金融科技服务。",
+        ),
+        SearchResult(
+            title="上海产品经理招聘 30K-50K",
+            url="https://jobs.example/product",
+            snippet="产品经理岗位，月薪30K-50K。",
+        ),
+    ]
+    graph = build_graph(
+        GraphDependencies(
+            model=DeterministicAnalysisModel(),
+            search=StaticSearchGateway(unrelated_results),
+            profiles=InMemoryProfiles(profile),
+        )
+    )
+
+    result = await graph.ainvoke(graph_input(profile))
+
+    assert result["status"] == "completed"
+    assert result["company_info"].businesses == []
+    assert result["company_info"].company_type is None
+    assert result["company_info"].sources == []
+    assert result["salary_info"].minimum is None
+    assert result["salary_info"].sample_count == 0
+    assert result["salary_info"].sources == []
+    assert "未找到能够明确对应" in result["final_report"]
+
+
+@pytest.mark.asyncio
+async def test_salary_falls_back_to_market_and_keeps_raw_search_attempts(profile):
+    class QueryAwareSearch:
+        async def search(self, query: str, *, max_results: int = 5):
+            if "官网" in query:
+                return [
+                    SearchResult(
+                        title="示例科技官网",
+                        url="https://example.com",
+                        snippet="示例科技是一家企业软件服务商。",
+                    )
+                ]
+            if query.startswith("示例科技"):
+                return [
+                    SearchResult(
+                        title="示例科技整体薪酬",
+                        url="https://salary.example/company",
+                        snippet="示例科技整体薪酬区间为6K-50K，未区分岗位。",
+                    )
+                ]
+            return [
+                SearchResult(
+                    title="上海Java后端招聘 18K-25K",
+                    url="https://jobs.example/one",
+                    snippet="上海Java后端岗位月薪18K-25K。",
+                ),
+                SearchResult(
+                    title="上海Java后端工程师 20K-30K",
+                    url="https://jobs.example/two",
+                    snippet="上海Java后端工程师薪资20K-30K。",
+                ),
+            ]
+
+    graph = build_graph(
+        GraphDependencies(
+            model=DeterministicAnalysisModel(),
+            search=QueryAwareSearch(),
+            profiles=InMemoryProfiles(profile),
+        )
+    )
+
+    result = await graph.ainvoke(graph_input(profile))
+    salary = result["salary_info"]
+
+    assert salary.data_scope == "market"
+    assert salary.fallback_used is True
+    assert salary.minimum == 19000
+    assert salary.maximum == 27500
+    assert len(salary.search_attempts) == 2
+    assert salary.search_attempts[0].raw_result_count == 1
+    assert salary.search_attempts[0].accepted_result_count == 0
+    assert salary.search_attempts[0].sources[0].title == "示例科技整体薪酬"
+    assert salary.search_attempts[1].accepted_result_count == 2
+    assert {source.url for source in salary.sources} == {
+        "https://jobs.example/one",
+        "https://jobs.example/two",
+    }
+    assert "市场参考（降级结果）" in result["final_report"]

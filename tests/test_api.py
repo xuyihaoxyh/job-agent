@@ -18,6 +18,8 @@ def test_analyze_and_restore_thread(tmp_path):
         "user_id": "user-api",
         "jd_text": "招聘Java后端工程师，要求3年经验，熟悉Java、Spring Boot、MySQL和Redis，负责核心服务开发。",
         "company_name": "示例科技",
+        "job_title": "Java后端工程师",
+        "employment_type": "social",
         "target_location": "上海",
         "user_profile": {
             "skills": ["Java", "Spring Boot", "MySQL", "Redis"],
@@ -42,6 +44,9 @@ def test_analyze_and_restore_thread(tmp_path):
         assert body["step_count"] == 6
         assert body["elapsed_ms"] >= 0
         assert len(body["match_result"]["score_dimensions"]) == 3
+        assert body["salary_info"]["role_name"] == "Java后端工程师"
+        assert body["salary_info"]["role_source"] == "user"
+        assert body["salary_info"]["employment_type"] == "social"
         assert {item["node"] for item in body["metrics"]} == {
             "intake",
             "jd",
