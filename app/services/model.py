@@ -15,7 +15,6 @@ from app.schemas.domain import (
 )
 from app.services.protocols import AnalysisModel
 
-
 KNOWN_SKILLS = [
     "Java",
     "Python",
@@ -174,8 +173,21 @@ class DeterministicAnalysisModel:
 
 
 class OpenAIAnalysisModel:
-    def __init__(self, *, model_name: str, api_key: str) -> None:
-        self._model = ChatOpenAI(model=model_name, api_key=api_key, temperature=0)
+    def __init__(
+        self,
+        *,
+        model_name: str,
+        api_key: str,
+        timeout_seconds: float = 60.0,
+        max_retries: int = 2,
+    ) -> None:
+        self._model = ChatOpenAI(
+            model=model_name,
+            api_key=api_key,
+            temperature=0,
+            timeout=timeout_seconds,
+            max_retries=max_retries,
+        )
         self._jd_model = self._model.with_structured_output(JDInfo)
 
     async def extract_jd(self, jd_text: str) -> JDInfo:
@@ -237,5 +249,7 @@ def build_analysis_model(settings: Settings) -> AnalysisModel:
         return OpenAIAnalysisModel(
             model_name=settings.model_name,
             api_key=settings.openai_api_key,
+            timeout_seconds=settings.model_timeout_seconds,
+            max_retries=settings.model_max_retries,
         )
     raise ValueError(f"Unsupported MODEL_BACKEND: {settings.model_backend}")

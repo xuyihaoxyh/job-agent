@@ -107,6 +107,35 @@ async def test_search_failure_produces_degraded_report(profile):
 
 
 @pytest.mark.asyncio
+async def test_model_failures_use_deterministic_fallback(profile, search_results):
+    class FailingModel:
+        async def extract_jd(self, jd_text: str):
+            raise RuntimeError("model unavailable")
+
+        async def write_report(self, **kwargs):
+            raise RuntimeError("model unavailable")
+
+    graph = build_graph(
+        GraphDependencies(
+            model=FailingModel(),
+            search=StaticSearchGateway(search_results),
+            profiles=InMemoryProfiles(profile),
+        )
+    )
+
+    result = await graph.ainvoke(graph_input(profile))
+
+    assert result["status"] == "completed"
+    assert result["jd_info"].required_skills
+    assert result["final_report"].startswith("# 岗位分析报告")
+    assert {error.node for error in result["errors"]} >= {"jd", "report"}
+    degraded = {
+        event.node for event in result["route_events"] if event.status == "degraded"
+    }
+    assert degraded >= {"jd", "report"}
+
+
+@pytest.mark.asyncio
 async def test_unrelated_search_results_produce_information_insufficient(profile):
     unrelated_results = [
         SearchResult(

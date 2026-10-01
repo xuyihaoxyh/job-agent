@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 from app.schemas.domain import NodeMetric, utc_now
 
-
 RouterMode = Literal["fixed", "llm", "hybrid"]
 OutputName = Literal[
     "jd_info",

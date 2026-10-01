@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-import uuid
 import logging
+import uuid
 from time import perf_counter
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 
-from app.schemas.request import AnalyzeRequest
-from app.schemas.response import AnalyzeResponse, ThreadStateResponse
 from app.auth.dependencies import get_current_user
 from app.schemas.auth import AuthUser
-
+from app.schemas.request import AnalyzeRequest
+from app.schemas.response import AnalyzeResponse, ThreadStateResponse
 
 router = APIRouter(prefix="/api/v1", tags=["analysis"])
 logger = logging.getLogger(__name__)
@@ -58,6 +57,17 @@ async def analyze(
         ) from exc
 
     await request.app.state.auth.bind_thread(thread_id, user.id)
+
+    match_result = result.get("match_result")
+    await request.app.state.history.record(
+        thread_id=thread_id,
+        user_id=user.id,
+        company_name=result.get("company_name", payload.company_name),
+        job_title=(result.get("jd_info").role_name if result.get("jd_info") else payload.job_title),
+        status=result.get("status", "completed"),
+        match_score=match_result.score if match_result else None,
+        recommendation=match_result.recommendation if match_result else None,
+    )
 
     return AnalyzeResponse(
         thread_id=thread_id,

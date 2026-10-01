@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
-from pathlib import Path
 import sqlite3
 import uuid
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import aiosqlite
 
 from app.auth.security import hash_password, new_session_token, token_digest, verify_password
+from app.memory.migrations import SQLiteMigrationRunner
 from app.schemas.auth import AuthUser
 
 
@@ -21,40 +22,7 @@ class SQLiteAuthRepository:
         self._session_ttl_hours = session_ttl_hours
 
     async def setup(self) -> None:
-        self._database_path.parent.mkdir(parents=True, exist_ok=True)
-        async with aiosqlite.connect(self._database_path) as connection:
-            await connection.execute("PRAGMA journal_mode=WAL")
-            await connection.execute("PRAGMA busy_timeout=5000")
-            await connection.execute("PRAGMA foreign_keys=ON")
-            await connection.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS users (
-                    id TEXT PRIMARY KEY,
-                    username TEXT NOT NULL COLLATE NOCASE UNIQUE,
-                    email TEXT NOT NULL COLLATE NOCASE UNIQUE,
-                    display_name TEXT NOT NULL,
-                    password_hash TEXT NOT NULL,
-                    created_at TEXT NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS auth_sessions (
-                    token_hash TEXT PRIMARY KEY,
-                    user_id TEXT NOT NULL,
-                    expires_at TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-                );
-                CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_id
-                    ON auth_sessions(user_id);
-                CREATE TABLE IF NOT EXISTS analysis_threads (
-                    thread_id TEXT PRIMARY KEY,
-                    user_id TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-                );
-                """
-            )
-            await connection.execute("PRAGMA user_version=1")
-            await connection.commit()
+        await SQLiteMigrationRunner(self._database_path).migrate()
 
     async def create_user(
         self, username: str, email: str, password: str, display_name: str | None = None

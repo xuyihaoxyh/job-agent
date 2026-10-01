@@ -7,7 +7,6 @@ from statistics import median
 from app.schemas.domain import SearchResult
 from app.tools.company_analyzer import result_mentions_company
 
-
 _RANGE_PATTERN = re.compile(
     r"(?P<low>\d{1,3}(?:\.\d+)?)\s*(?:[kK千])?\s*[-–—~至]\s*"
     r"(?P<high>\d{1,3}(?:\.\d+)?)\s*[kK千]"

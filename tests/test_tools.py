@@ -1,6 +1,7 @@
 import pytest
 
 from app.schemas.domain import JDInfo, SearchResult, Source, UserProfile
+from app.services.model import DeterministicAnalysisModel
 from app.tools.company_analyzer import (
     build_company_info,
     filter_company_results,
@@ -15,7 +16,6 @@ from app.tools.salary_calculator import (
     filter_valid_salary_results,
     focus_salary_result_on_role,
 )
-from app.services.model import DeterministicAnalysisModel
 
 
 def test_match_scorer_identifies_strengths_and_gaps():
@@ -306,6 +306,57 @@ def test_company_analyzer_does_not_use_subsidiary_headquarters():
     )
 
     assert info.headquarters == "中华人民共和国上海市浦东新区"
+
+
+def test_company_facts_do_not_borrow_competitor_businesses():
+    result = SearchResult(
+        title="米哈游公司介绍",
+        url="https://example.com/mihoyo",
+        snippet=(
+            "米哈游主要从事游戏研发与发行。"
+            "米哈游的竞争对手腾讯还提供云计算和金融科技服务。"
+        ),
+    )
+    source = Source(id="company-1", title=result.title, url=result.url)
+
+    info = build_company_info(
+        company_name="米哈游",
+        jd_info=JDInfo(role_name="后端工程师"),
+        results=[result],
+        sources=[source],
+    )
+
+    assert "游戏" in info.businesses
+    assert "云计算" not in info.businesses
+    assert "金融科技" not in info.businesses
+    assert info.evidence[0].source_ids == ["company-1"]
+
+
+def test_conflicting_company_facts_are_not_presented_as_certain():
+    listed = SearchResult(
+        title="示例科技公告",
+        url="https://example.com/listed",
+        snippet="示例科技是一家A股上市公司。",
+    )
+    not_listed = SearchResult(
+        title="示例科技回应",
+        url="https://example.com/private",
+        snippet="示例科技目前尚未上市。",
+    )
+    sources = [
+        Source(id="company-1", title=listed.title, url=listed.url),
+        Source(id="company-2", title=not_listed.title, url=not_listed.url),
+    ]
+
+    info = build_company_info(
+        company_name="示例科技",
+        jd_info=JDInfo(role_name="后端工程师"),
+        results=[listed, not_listed],
+        sources=sources,
+    )
+
+    assert "上市公司" not in (info.company_type or "")
+    assert any("表述冲突" in caveat for caveat in info.caveats)
 
 
 def test_company_analyzer_rejects_unrelated_search_results():

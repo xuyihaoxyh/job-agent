@@ -7,7 +7,6 @@ from app.auth.dependencies import get_current_user
 from app.schemas.auth import AuthUser
 from app.schemas.domain import UserProfile
 
-
 router = APIRouter(prefix="/api/v1/profile", tags=["profile"])
 
 

@@ -1,4 +1,5 @@
 from app.schemas.domain import (
+    CompanyFact,
     CompanyInfo,
     JDInfo,
     MatchResult,
@@ -15,6 +16,7 @@ from app.schemas.domain import (
 
 __all__ = [
     "CompanyInfo",
+    "CompanyFact",
     "JDInfo",
     "MatchResult",
     "MatchScoreDimension",

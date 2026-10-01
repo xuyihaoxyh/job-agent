@@ -5,6 +5,7 @@ from pathlib import Path
 
 import aiosqlite
 
+from app.memory.migrations import SQLiteMigrationRunner
 from app.schemas.domain import UserProfile
 
 
@@ -13,20 +14,7 @@ class SQLiteUserProfileRepository:
         self._database_path = database_path
 
     async def setup(self) -> None:
-        self._database_path.parent.mkdir(parents=True, exist_ok=True)
-        async with aiosqlite.connect(self._database_path) as connection:
-            await connection.execute("PRAGMA journal_mode=WAL")
-            await connection.execute("PRAGMA busy_timeout=5000")
-            await connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS user_profiles (
-                    user_id TEXT PRIMARY KEY,
-                    profile_json TEXT NOT NULL,
-                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-                )
-                """
-            )
-            await connection.commit()
+        await SQLiteMigrationRunner(self._database_path).migrate()
 
     async def get(self, user_id: str) -> UserProfile | None:
         async with aiosqlite.connect(self._database_path) as connection:

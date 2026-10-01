@@ -9,7 +9,6 @@ from app.graph.state import JobAnalysisState
 from app.schemas.domain import CompanyInfo, NodeError, RouteEvent, Source
 from app.tools.company_analyzer import build_company_info, filter_company_results
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -48,10 +47,12 @@ def make_company_node(deps: GraphDependencies):
             )
             return {
                 "company_info": info,
-                "sources": sources,
+                # Only evidence that survived sentence-level grounding may
+                # become a final report source.
+                "sources": info.sources,
                 **completed("company", started_at),
             }
-        except Exception as exc:
+        except Exception:
             logger.exception("Company search failed for %s", company_name)
             info = CompanyInfo(
                 company_name=company_name,

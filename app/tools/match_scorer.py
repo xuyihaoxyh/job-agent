@@ -4,7 +4,6 @@ import re
 
 from app.schemas.domain import JDInfo, MatchResult, MatchScoreDimension, UserProfile
 
-
 _SKILL_ALIASES = {
     "golang": "go",
     "go语言": "go",

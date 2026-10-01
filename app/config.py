@@ -4,7 +4,6 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -14,6 +13,8 @@ class Settings:
     model_backend: str = "mock"
     model_name: str = "gpt-4.1-mini"
     openai_api_key: str | None = None
+    model_timeout_seconds: float = 60.0
+    model_max_retries: int = 2
     search_backend: str = "static"
     checkpoint_db: Path = PROJECT_ROOT / "data" / "checkpoints.db"
     app_db: Path = PROJECT_ROOT / "data" / "app.db"
@@ -32,6 +33,8 @@ class Settings:
             model_backend=os.getenv("MODEL_BACKEND", "mock").lower(),
             model_name=os.getenv("MODEL_NAME", "gpt-4.1-mini"),
             openai_api_key=os.getenv("OPENAI_API_KEY"),
+            model_timeout_seconds=float(os.getenv("MODEL_TIMEOUT_SECONDS", "60")),
+            model_max_retries=int(os.getenv("MODEL_MAX_RETRIES", "2")),
             search_backend=os.getenv("SEARCH_BACKEND", "static").lower(),
             checkpoint_db=Path(
                 os.getenv("CHECKPOINT_DB", PROJECT_ROOT / "data" / "checkpoints.db")

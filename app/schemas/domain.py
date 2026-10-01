@@ -60,6 +60,11 @@ class JDInfo(BaseModel):
     responsibilities: list[str] = Field(default_factory=list)
 
 
+class CompanyFact(BaseModel):
+    claim: str
+    source_ids: list[str] = Field(default_factory=list)
+
+
 class CompanyInfo(BaseModel):
     company_name: str
     summary: str
@@ -70,6 +75,7 @@ class CompanyInfo(BaseModel):
     role_relevance: str | None = None
     caveats: list[str] = Field(default_factory=list)
     facts: list[str] = Field(default_factory=list)
+    evidence: list[CompanyFact] = Field(default_factory=list)
     confidence: Literal["low", "medium", "high"] = "low"
     sources: list[Source] = Field(default_factory=list)
 

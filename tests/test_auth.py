@@ -164,3 +164,4 @@ def test_thread_is_not_visible_to_another_user(tmp_path):
         )
         assert client.get(f"/api/v1/threads/{thread_id}").status_code == 404
         assert client.get("/api/v1/profile").json()["profile"] is None
+        assert client.get("/api/v1/analyses").json()["items"] == []

@@ -12,7 +12,6 @@ from app.schemas.auth import (
     UpdateAccountRequest,
 )
 
-
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
 
 

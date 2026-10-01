@@ -3,8 +3,7 @@ from __future__ import annotations
 import re
 from urllib.parse import urlparse
 
-from app.schemas.domain import CompanyInfo, JDInfo, SearchResult, Source
-
+from app.schemas.domain import CompanyFact, CompanyInfo, JDInfo, SearchResult, Source
 
 _BUSINESS_KEYWORDS = {
     "云计算": ("云计算", "云服务", "公有云", "混合云"),
@@ -64,6 +63,42 @@ def filter_company_results(
     return [result for result in results if result_mentions_company(result, company_name)]
 
 
+def _grounded_sentences(company_name: str, result: SearchResult) -> list[str]:
+    variants = _company_name_variants(company_name)
+    sentences = [
+        part.strip()
+        for part in re.split(r"(?<=[。！？!?；;])|\n+", result.snippet)
+        if part.strip()
+    ]
+    grounded: list[str] = []
+    previous_was_grounded = False
+    for sentence in sentences:
+        normalized = _normalize_entity_name(sentence)
+        if any(marker in sentence for marker in ("竞争对手", "同行相比", "对比", "区别于")):
+            previous_was_grounded = False
+            continue
+        explicitly_grounded = any(variant in normalized for variant in variants)
+        pronoun_continuation = previous_was_grounded and bool(
+            re.match(r"^(?:公司|该公司|其|集团|企业)", sentence)
+        )
+        if explicitly_grounded or pronoun_continuation:
+            grounded.append(sentence)
+            previous_was_grounded = True
+        else:
+            previous_was_grounded = False
+
+    # Search engines sometimes omit the entity from the first snippet sentence
+    # because it is already present in the title. Only that first sentence gets
+    # this conservative title-context fallback.
+    title = _normalize_entity_name(result.title)
+    title_matches = any(variant in title for variant in variants)
+    if not grounded and title_matches and sentences:
+        first = sentences[0]
+        if not any(marker in first for marker in ("竞争对手", "同行相比", "对比", "区别于")):
+            grounded.append(first)
+    return grounded
+
+
 def _clean_text(value: str, *, limit: int = 420) -> str:
     text = re.sub(r"\[\.\.\.\]|\.{3,}", "", value)
     text = re.sub(r"#{1,6}\s*", "", text)
@@ -121,22 +156,16 @@ def _is_publicly_listed(text: str) -> bool:
     return any(re.search(pattern, cleaned, flags=re.IGNORECASE) for pattern in positive_patterns)
 
 
-def _headquarters(company_name: str, results: list[SearchResult]) -> str | None:
-    # Prefer infobox/table values because generic snippets may mention the
-    # headquarters of subsidiaries or companies being invested in.
-    table_patterns = [
-        r"(?:总部|總部)\s*\|\s*([^|\n]{2,80})",
-        r"(?:总部|總部)\s*[:：]\s*([^。；|\n]{2,80})",
-    ]
-    own_sentence_patterns = [
-        rf"{re.escape(company_name)}[^。；\n]{{0,35}}(?:总部|總部)(?:位于|位於|设在|設在|所在地为)?\s*([^。；\n]{{2,60}})",
-    ]
-    for patterns in (table_patterns, own_sentence_patterns):
-        for result in results:
-            value = _first_match(patterns, result.snippet)
-            if value:
-                return value
-    return None
+def _headquarters_from_text(company_name: str, text: str) -> str | None:
+    return _first_match(
+        [
+            r"(?:总部|總部)\s*\|\s*([^|\n]{2,80})",
+            r"(?:总部|總部)\s*[:：]\s*([^。；|\n]{2,80})",
+            rf"{re.escape(company_name)}[^。；\n]{{0,35}}(?:总部|總部)(?:位于|位於|设在|設在|所在地为)?\s*([^。；\n]{{2,60}})",
+            r"(?:总部|總部)(?:位于|位於|设在|設在|所在地为)\s*([^。；\n]{2,60})",
+        ],
+        text,
+    )
 
 
 def build_company_info(
@@ -149,9 +178,14 @@ def build_company_info(
     # Defense in depth: callers should filter first so sources stay aligned,
     # while the analyzer also refuses unrelated results when used directly.
     relevant_results = filter_company_results(company_name, results)
-    relevant_urls = {result.url for result in relevant_results}
+    grounded_results = [
+        (result, " ".join(_grounded_sentences(company_name, result)))
+        for result in relevant_results
+    ]
+    grounded_results = [(result, text) for result, text in grounded_results if text]
+    relevant_urls = {result.url for result, _ in grounded_results}
     relevant_sources = [source for source in sources if source.url in relevant_urls]
-    ranked = sorted(relevant_results, key=_source_quality, reverse=True)
+    ranked = sorted(grounded_results, key=lambda item: _source_quality(item[0]), reverse=True)
     if not ranked:
         return CompanyInfo(
             company_name=company_name,
@@ -164,11 +198,25 @@ def build_company_info(
             confidence="low",
             sources=[],
         )
-    combined = " ".join(result.snippet for result in ranked if result.snippet)
-    facts = [_clean_text(result.snippet) for result in ranked if result.snippet][:3]
+    combined = " ".join(text for _, text in ranked)
+    facts = [_clean_text(text) for _, text in ranked][:3]
+    source_by_url = {source.url: source for source in relevant_sources}
+    evidence = [
+        CompanyFact(
+            claim=_clean_text(text),
+            source_ids=[source_by_url[result.url].id] if result.url in source_by_url else [],
+        )
+        for result, text in ranked[:3]
+    ]
 
     company_types: list[str] = []
-    if _is_publicly_listed(combined):
+    listed_evidence = any(_is_publicly_listed(text) for _, text in ranked)
+    nonlisted_evidence = any(
+        re.search(r"(?:未|尚未|没有|并未|不是|非)上市|(?:撤回|终止|中止)上市", text)
+        for _, text in ranked
+    )
+    listing_conflict = listed_evidence and nonlisted_evidence
+    if listed_evidence and not listing_conflict:
         company_types.append("上市公司")
     if "民营" in combined:
         company_types.append("民营企业")
@@ -180,7 +228,12 @@ def build_company_info(
         for name, keywords in _BUSINESS_KEYWORDS.items()
         if any(keyword.casefold() in combined.casefold() for keyword in keywords)
     ][:6]
-    headquarters = _headquarters(company_name, ranked)
+    headquarters_values = {
+        value
+        for _, text in ranked
+        if (value := _headquarters_from_text(company_name, text))
+    }
+    headquarters = next(iter(headquarters_values)) if len(headquarters_values) == 1 else None
     employee_scale = _first_match(
         [
             r"(?:员工|雇员)(?:总数|人数|数)?(?:为|有|达到|约)?\s*([\d,.]+\s*万?人)",
@@ -202,7 +255,7 @@ def build_company_info(
         if businesses
         else f"当前分析岗位为{role_name}，但公开搜索结果不足以判断具体业务归属。"
     )
-    has_high_quality_source = any(_source_quality(result) >= 4 for result in ranked)
+    has_high_quality_source = any(_source_quality(result) >= 4 for result, _ in ranked)
     confidence = (
         "high"
         if len(relevant_sources) >= 3 and has_high_quality_source
@@ -211,6 +264,10 @@ def build_company_info(
         else "low"
     )
     caveats = ["员工规模和财务数据可能对应不同披露期，请以最新官方材料为准。"]
+    if listing_conflict:
+        caveats.append("公开来源对上市状态表述冲突，暂不判断是否为上市公司。")
+    if len(headquarters_values) > 1:
+        caveats.append("公开来源中的总部信息不一致，暂不展示总部结论。")
     if len(relevant_sources) < 2:
         caveats.append("当前仅有单一相关来源，尚不足以完成交叉验证。")
     return CompanyInfo(
@@ -223,6 +280,7 @@ def build_company_info(
         role_relevance=role_relevance,
         caveats=caveats,
         facts=facts,
+        evidence=evidence,
         confidence=confidence,
         sources=relevant_sources,
     )

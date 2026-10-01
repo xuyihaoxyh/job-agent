@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+      - name: Lint Python
+        run: ruff check app tests
+      - name: Check frontend JavaScript
+        run: node --check app/web/app.js
+      - name: Run tests
+        run: pytest -q
+      - name: Build container
+        run: docker build -t job-agent:ci .

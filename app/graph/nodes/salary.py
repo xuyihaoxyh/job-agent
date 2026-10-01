@@ -14,6 +14,7 @@ from app.schemas.domain import (
     SalarySearchAttempt,
     Source,
 )
+from app.tools.role_resolver import resolve_salary_search_role
 from app.tools.salary_calculator import (
     estimate_monthly_salary,
     filter_salary_results,
@@ -21,8 +22,6 @@ from app.tools.salary_calculator import (
     focus_salary_result_on_role,
     result_is_company_salary_sample,
 )
-from app.tools.role_resolver import resolve_salary_search_role
-
 
 logger = logging.getLogger(__name__)
 
@@ -261,7 +260,7 @@ def make_salary_node(deps: GraphDependencies):
                     RouteEvent(node="salary", status="degraded")
                 ]
             return response
-        except Exception as exc:
+        except Exception:
             logger.exception("Salary search failed for %s / %s", company_name, role_name)
             info = SalaryInfo(
                 role_name=role_name,

@@ -9,7 +9,7 @@
 1. 显式 `StateGraph` 和 Fixed Router
 2. 可切换的离线模型/OpenAI 模型
 3. 一个真实的 stdio 搜索 MCP Server
-4. FastAPI、SQLite Checkpointer、账户登录和长期用户资料
+4. FastAPI、SQLite Checkpointer、账户登录、长期用户资料和分析历史
 
 Hybrid Router、LLM Router 和 Skills 暂未加入，它们属于后续里程碑。
 
@@ -27,7 +27,7 @@ http://localhost:8000/
 http://localhost:8001/
 ```
 
-页面支持注册、登录和右上角用户中心。候选人技能、学历、经验、意向城市、意向岗位和经历摘要按账户独立保存，登录后自动回填，无需每次重新输入。登录后可以提交 JD、公司和个人资料，并展示 Fixed Router 的执行顺序、各节点耗时、匹配分、来源与最终报告。LLM 和 Hybrid 选项暂时禁用，等对应 Router 实现后再开放。
+页面支持注册、登录和右上角用户中心。候选人技能、学历、经验、意向城市、意向岗位和经历摘要按账户独立保存，登录后自动回填，无需每次重新输入。用户中心会列出当前账户的分析历史，点击记录可从 LangGraph checkpoint 恢复完整结果。登录后可以提交 JD、公司和个人资料，并展示 Fixed Router 的执行顺序、各节点耗时、匹配分、来源与最终报告。LLM 和 Hybrid 选项暂时禁用，等对应 Router 实现后再开放。
 
 当前结果页还会展示规则评分维度、结构化公司画像、薪资样本数与可信度。开发者详情中的端到端耗时是用户实际等待时间；Company、Salary、Match 的节点耗时属于并行工作量，不能直接相加作为等待时间。
 
@@ -60,6 +60,7 @@ Company、Salary、Match 在 JD 完成后并行，Report 等待三条分支全�
 MCP 搜索结果在进入结构化提取前会先进行相关性校验：
 
 - 公司事实只接受明确出现目标公司名称或完整公司名称别名的结果。
+- 公司搜索结果按句子做实体绑定，每条采纳事实保存对应来源 ID；上市状态、总部等来源冲突时不强行下结论。
 - 薪资样本必须同时匹配目标岗位和目标城市；目标公司用于进一步标记公司专属样本。
 - 请求可以显式传入 `job_title` 和 `employment_type`；JD 无标题时只为搜索生成带提示的岗位推断。
 - 常规社招、校园招聘和实习结果分开过滤，避免不同招聘类型混算。
@@ -74,8 +75,10 @@ MCP 搜索结果在进入结构化提取前会先进行相关性校验：
 
 ```text
 data/checkpoints.db  LangGraph thread 状态和检查点
-data/app.db          用户账户、登录会话、thread 归属和长期用户资料
+data/app.db          用户账户、登录会话、thread 归属、分析历史和长期用户资料
 ```
+
+`app.db` 使用 `PRAGMA user_version` 执行幂等迁移，已有数据库会在启动时自动补齐新字段和索引，无需删除重建。
 
 ## 本地启动
 
@@ -119,10 +122,13 @@ OPENAI_API_KEY=你的OpenAIKey
 SEARCH_BACKEND=mcp
 TAVILY_API_KEY=你的TavilyKey
 SEARCH_TIMEOUT_SECONDS=35
+MODEL_TIMEOUT_SECONDS=60
+MODEL_MAX_RETRIES=2
 ```
 
 启动时，Company 和 Salary 节点会通过 `langchain-mcp-adapters` 连接
 `app/mcp/servers.json` 中的 stdio Server。Server 的 `web_search` 工具再调用 Tavily。
+真实模型超时或请求失败时，JD 与 Report 节点会回退到本地确定性实现，并在执行事件和错误列表中标记为降级，避免整个分析直接失败。
 
 也可以只启用其中一项，例如使用真实 MCP 搜索但保留离线模型：
 
@@ -194,6 +200,14 @@ curl -b cookies.txt http://localhost:8001/api/v1/threads/<thread_id>
 
 thread 与创建它的账户绑定，其他登录用户无法读取。
 
+### 分析历史
+
+```text
+GET /api/v1/analyses?limit=20
+```
+
+只返回当前登录账户的记录，包含公司、岗位、匹配分、建议和更新时间。前端用户中心会使用该接口，并通过 thread 恢复接口打开历史结果。
+
 ### 健康检查与接口文档
 
 ```text
@@ -213,14 +227,19 @@ docker compose up --build
 ```
 
 SQLite 文件保存在宿主机的 `job-agent/data/`。
+Dockerfile 启用了 BuildKit 的 pip 缓存；首次构建仍需下载依赖，之后即使应用代码变化，也可复用已下载的 wheel。
 
 ## 测试
 
 测试不调用真实 LLM，也不访问公网：
 
 ```bash
-pytest
+ruff check app tests
+node --check app/web/app.js
+pytest -q
 ```
+
+GitHub Actions 会自动执行以上检查并验证 Docker 镜像能够构建。Web 资源拆分为 `index.html`、`styles.css` 和 `app.js`，由 FastAPI 的 `/assets` 路径提供。
 
 覆盖内容：
 
@@ -232,6 +251,8 @@ pytest
 - SQLite 用户资料读写
 - 注册、登录、退出、Cookie 会话和用户隔离
 - FastAPI 分析与 thread 恢复
+- SQLite 迁移幂等性、旧版本升级和用户分析历史
+- 真实模型失败时的 JD/Report 降级
 - Web 页面入口和 API 指标字段
 - 评估数据集与路由指标计算
 

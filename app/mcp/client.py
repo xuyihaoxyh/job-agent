@@ -1,18 +1,18 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import sys
-import asyncio
 from pathlib import Path
 from typing import Any
 
 from langchain_core.tools import BaseTool
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from pydantic import ValidationError
 
 from app.schemas.domain import SearchResult
 from app.services.protocols import SearchGateway
-from pydantic import ValidationError
 
 
 def _json_from_tool_output(value: Any) -> Any:

@@ -34,7 +34,13 @@ def test_analyze_and_restore_thread(tmp_path):
         assert "匹配度解释" in web.text
         assert "parallel fan-out" in web.text
         assert 'id="userId"' not in web.text
-        assert "/api/v1/profile" in web.text
+        assert '/assets/app.js' in web.text
+        script = client.get("/assets/app.js")
+        styles = client.get("/assets/styles.css")
+        assert script.status_code == 200
+        assert styles.status_code == 200
+        assert "/api/v1/profile" in script.text
+        assert "/api/v1/analyses" in script.text
 
         registered = client.post(
             "/api/v1/auth/register",
@@ -71,7 +77,14 @@ def test_analyze_and_restore_thread(tmp_path):
         assert restored.status_code == 200
         assert restored.json()["status"] == "completed"
 
+        history = client.get("/api/v1/analyses")
+        assert history.status_code == 200
+        assert history.json()["items"][0]["thread_id"] == body["thread_id"]
+        assert history.json()["items"][0]["company_name"] == "示例科技"
+        assert history.json()["items"][0]["match_score"] == body["match_result"]["score"]
+
         # The profile was persisted separately, so it can be omitted next time.
         payload.pop("user_profile")
         second = client.post("/api/v1/analyze", json=payload)
         assert second.status_code == 200, second.text
+        assert len(client.get("/api/v1/analyses").json()["items"]) == 2
