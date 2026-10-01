@@ -19,6 +19,12 @@ class Settings:
     app_db: Path = PROJECT_ROOT / "data" / "app.db"
     mcp_config_path: Path = PROJECT_ROOT / "app" / "mcp" / "servers.json"
     search_tool_name: str = "web_search"
+    search_timeout_seconds: float = 35.0
+    session_cookie_name: str = "job_agent_session"
+    session_ttl_hours: int = 168
+    session_cookie_secure: bool = False
+    login_max_attempts: int = 5
+    login_window_seconds: int = 300
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -37,6 +43,13 @@ class Settings:
                 )
             ),
             search_tool_name=os.getenv("MCP_SEARCH_TOOL", "web_search"),
+            search_timeout_seconds=float(os.getenv("SEARCH_TIMEOUT_SECONDS", "35")),
+            session_cookie_name=os.getenv("SESSION_COOKIE_NAME", "job_agent_session"),
+            session_ttl_hours=int(os.getenv("SESSION_TTL_HOURS", "168")),
+            session_cookie_secure=os.getenv("SESSION_COOKIE_SECURE", "false").lower()
+            in {"1", "true", "yes"},
+            login_max_attempts=int(os.getenv("LOGIN_MAX_ATTEMPTS", "5")),
+            login_window_seconds=int(os.getenv("LOGIN_WINDOW_SECONDS", "300")),
         )
 
     def ensure_directories(self) -> None:

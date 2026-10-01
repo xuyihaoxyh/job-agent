@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import asyncio
 
-from app.mcp.client import _json_from_tool_output
+import pytest
+
+from app.mcp.client import MCPSearchGateway, _json_from_tool_output
 
 
 def test_parses_double_encoded_mcp_json_output():
@@ -34,3 +37,23 @@ def test_parses_one_json_object_per_mcp_text_block():
         {"title": "First"},
         {"title": "Second"},
     ]
+
+
+@pytest.mark.asyncio
+async def test_mcp_search_call_has_timeout(tmp_path):
+    class SlowTool:
+        name = "web_search"
+        args = {"query": {}, "max_results": {}}
+
+        async def ainvoke(self, arguments):
+            await asyncio.sleep(0.05)
+            return []
+
+    gateway = MCPSearchGateway(
+        config_path=tmp_path / "unused.json",
+        timeout_seconds=0.01,
+    )
+    gateway._tool = SlowTool()
+
+    with pytest.raises(TimeoutError):
+        await gateway.search("query")

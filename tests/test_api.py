@@ -15,7 +15,6 @@ def test_analyze_and_restore_thread(tmp_path):
     )
     app = create_app(settings)
     payload = {
-        "user_id": "user-api",
         "jd_text": "招聘Java后端工程师，要求3年经验，熟悉Java、Spring Boot、MySQL和Redis，负责核心服务开发。",
         "company_name": "示例科技",
         "job_title": "Java后端工程师",
@@ -34,6 +33,18 @@ def test_analyze_and_restore_thread(tmp_path):
         assert "岗位分析工作台" in web.text
         assert "匹配度解释" in web.text
         assert "parallel fan-out" in web.text
+        assert 'id="userId"' not in web.text
+        assert "/api/v1/profile" in web.text
+
+        registered = client.post(
+            "/api/v1/auth/register",
+            json={
+                "username": "user-api",
+                "email": "user-api@example.com",
+                "password": "secure-pass-123",
+            },
+        )
+        assert registered.status_code == 201, registered.text
 
         response = client.post("/api/v1/analyze", json=payload)
         assert response.status_code == 200, response.text

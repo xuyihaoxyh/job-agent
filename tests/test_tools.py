@@ -30,6 +30,24 @@ def test_match_scorer_identifies_strengths_and_gaps():
     assert sum(item.max_score for item in result.score_dimensions) == 100
 
 
+def test_match_scorer_understands_skill_aliases_and_education_levels():
+    result = score_match(
+        JDInfo(required_skills=["Go", "Kubernetes"], education_requirements=["本科"]),
+        UserProfile(skills=["Golang", "K8s"], education="大专", years_of_experience=2),
+    )
+
+    assert result.matched_skills == ["Go", "Kubernetes"]
+    assert result.score_dimensions[2].score == 0
+    assert any("学历要求" in gap for gap in result.gaps)
+
+
+def test_match_scorer_does_not_give_high_skill_score_without_extracted_skills():
+    result = score_match(JDInfo(), UserProfile())
+
+    assert result.score_dimensions[0].score == 35
+    assert result.score == 65
+
+
 @pytest.mark.asyncio
 async def test_jd_experience_range_uses_lower_bound():
     info = await DeterministicAnalysisModel().extract_jd(
@@ -238,6 +256,35 @@ def test_company_analyzer_returns_compact_structured_info():
     assert {"云计算", "人工智能", "企业服务"} <= set(info.businesses)
     assert len(info.facts[0]) < 450
     assert "Java后端工程师" in (info.role_relevance or "")
+
+
+@pytest.mark.parametrize(
+    "statement",
+    [
+        "示例科技目前尚未上市，是一家互联网公司。",
+        "示例科技已撤回上市申请。",
+        "示例科技计划上市并持续发展企业服务业务。",
+    ],
+)
+def test_company_analyzer_does_not_treat_listing_plans_as_listed(statement):
+    result = SearchResult(
+        title="示例科技公司资料",
+        url="https://example.com/about",
+        snippet=statement,
+    )
+    info = build_company_info(
+        company_name="示例科技",
+        jd_info=JDInfo(role_name="后端工程师"),
+        results=[result],
+        sources=[Source(id="company-1", title=result.title, url=result.url)],
+    )
+
+    assert "上市公司" not in (info.company_type or "")
+
+
+def test_search_result_rejects_non_http_url():
+    with pytest.raises(ValueError):
+        SearchResult(title="unsafe", url="javascript:alert(1)")
 
 
 def test_company_analyzer_does_not_use_subsidiary_headquarters():

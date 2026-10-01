@@ -15,6 +15,8 @@ class SQLiteUserProfileRepository:
     async def setup(self) -> None:
         self._database_path.parent.mkdir(parents=True, exist_ok=True)
         async with aiosqlite.connect(self._database_path) as connection:
+            await connection.execute("PRAGMA journal_mode=WAL")
+            await connection.execute("PRAGMA busy_timeout=5000")
             await connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS user_profiles (
@@ -28,6 +30,7 @@ class SQLiteUserProfileRepository:
 
     async def get(self, user_id: str) -> UserProfile | None:
         async with aiosqlite.connect(self._database_path) as connection:
+            await connection.execute("PRAGMA busy_timeout=5000")
             cursor = await connection.execute(
                 "SELECT profile_json FROM user_profiles WHERE user_id = ?", (user_id,)
             )
@@ -39,6 +42,7 @@ class SQLiteUserProfileRepository:
     async def upsert(self, user_id: str, profile: UserProfile) -> None:
         payload = json.dumps(profile.model_dump(mode="json"), ensure_ascii=False)
         async with aiosqlite.connect(self._database_path) as connection:
+            await connection.execute("PRAGMA busy_timeout=5000")
             await connection.execute(
                 """
                 INSERT INTO user_profiles (user_id, profile_json, updated_at)
@@ -50,4 +54,3 @@ class SQLiteUserProfileRepository:
                 (user_id, payload),
             )
             await connection.commit()
-

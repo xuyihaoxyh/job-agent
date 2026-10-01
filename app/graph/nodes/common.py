@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 from time import perf_counter
+from typing import Any
 
 from app.schemas.domain import NodeMetric, RouteEvent
 
 
 def timer() -> float:
     return perf_counter()
+
+
+def token_usage(callback: Any) -> int:
+    return sum(
+        int(metadata.get("total_tokens", 0))
+        for metadata in callback.usage_metadata.values()
+    )
 
 
 def completed(node: str, started_at: float, *, token_usage: int = 0) -> dict:
@@ -22,4 +30,3 @@ def completed(node: str, started_at: float, *, token_usage: int = 0) -> dict:
         ],
         "step_count": 1,
     }
-

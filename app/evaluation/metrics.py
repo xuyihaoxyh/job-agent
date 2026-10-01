@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Mapping
 from typing import Any
 
@@ -12,12 +13,21 @@ def _unique(values: list[str]) -> list[str]:
 
 
 def route_scores(expected: list[str], actual: list[str]) -> tuple[float, float]:
-    expected_set = set(expected)
-    actual_set = set(actual)
-    common = expected_set & actual_set
-    precision = len(common) / len(actual_set) if actual_set else 0.0
-    recall = len(common) / len(expected_set) if expected_set else 1.0
+    expected_counts = Counter(expected)
+    actual_counts = Counter(actual)
+    common = sum(
+        min(count, actual_counts[node]) for node, count in expected_counts.items()
+    )
+    precision = common / len(actual) if actual else 0.0
+    recall = common / len(expected) if expected else 1.0
     return precision, recall
+
+
+def _has_sources(value: Any) -> bool:
+    if value is None:
+        return False
+    sources = value.get("sources", []) if isinstance(value, Mapping) else getattr(value, "sources", [])
+    return bool(sources)
 
 
 def build_record(
@@ -29,15 +39,24 @@ def build_record(
     model_backend: str,
     search_backend: str,
 ) -> EvaluationRecord:
-    actual_route = _unique(list(result.get("route_history", [])))
+    actual_route = list(result.get("route_history", []))
     expected = _unique(case.expected_agents)
     precision, recall = route_scores(expected, actual_route)
     metrics = [NodeMetric.model_validate(item) for item in result.get("metrics", [])]
     missing_outputs = [name for name in case.required_outputs if not result.get(name)]
     source_count = len(result.get("sources", []))
+    missing_source_outputs = [
+        name
+        for name in case.required_source_outputs
+        if not _has_sources(result.get(name))
+    ]
+    repeated_agents = sorted(
+        node for node, count in Counter(actual_route).items() if count > 1
+    )
     task_success = (
         result.get("status") == "completed"
         and not missing_outputs
+        and not missing_source_outputs
         and (not case.requires_sources or source_count > 0)
     )
     return EvaluationRecord(
@@ -51,14 +70,16 @@ def build_record(
         actual_route=actual_route,
         route_precision=round(precision, 4),
         route_recall=round(recall, 4),
-        exact_route_match=set(expected) == set(actual_route),
+        exact_route_match=Counter(expected) == Counter(actual_route),
         redundant_agents=sorted(set(actual_route) - set(expected)),
         missing_agents=sorted(set(expected) - set(actual_route)),
         task_success=task_success,
         missing_outputs=missing_outputs,
+        missing_source_outputs=missing_source_outputs,
+        repeated_agents=repeated_agents,
         source_count=source_count,
         error_count=len(result.get("errors", [])),
-        total_latency_ms=sum(metric.latency_ms for metric in metrics),
+        total_latency_ms=int(result.get("elapsed_ms", 0)),
         token_usage=sum(metric.token_usage for metric in metrics),
         node_metrics=metrics,
     )

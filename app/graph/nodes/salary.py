@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from urllib.parse import urlparse
 
 from app.graph.dependencies import GraphDependencies
@@ -21,6 +22,9 @@ from app.tools.salary_calculator import (
     result_is_company_salary_sample,
 )
 from app.tools.role_resolver import resolve_salary_search_role
+
+
+logger = logging.getLogger(__name__)
 
 
 def _source_id(url: str, index: int) -> str:
@@ -48,7 +52,7 @@ def _sources_for_results(results, *, prefix: str) -> list[Source]:
 def _is_trusted_salary_source(url: str) -> bool:
     host = urlparse(url).netloc.casefold()
     return any(
-        domain in host
+        host == domain or host.endswith(f".{domain}")
         for domain in (
             "zhaopin.com",
             "liepin.com",
@@ -153,6 +157,7 @@ def make_salary_node(deps: GraphDependencies):
                     if market_results:
                         data_scope = "market"
                 except Exception as exc:
+                    logger.exception("Salary market fallback search failed")
                     fallback_error = exc
                     attempts.append(
                         SalarySearchAttempt(
@@ -250,13 +255,14 @@ def make_salary_node(deps: GraphDependencies):
             }
             if fallback_error:
                 response["errors"] = [
-                    NodeError(node="salary", message=f"市场降级搜索失败: {fallback_error}")
+                    NodeError(node="salary", message="市场薪资降级搜索失败")
                 ]
                 response["route_events"] = [
                     RouteEvent(node="salary", status="degraded")
                 ]
             return response
         except Exception as exc:
+            logger.exception("Salary search failed for %s / %s", company_name, role_name)
             info = SalaryInfo(
                 role_name=role_name,
                 role_source=resolved_role.source,
@@ -271,7 +277,7 @@ def make_salary_node(deps: GraphDependencies):
             result["route_events"] = [RouteEvent(node="salary", status="degraded")]
             return {
                 "salary_info": info,
-                "errors": [NodeError(node="salary", message=str(exc))],
+                "errors": [NodeError(node="salary", message="薪资公开信息搜索失败")],
                 **result,
             }
 

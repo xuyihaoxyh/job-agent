@@ -28,6 +28,9 @@ class EvaluationCase(BaseModel):
     expected_agents: list[str]
     required_outputs: list[OutputName]
     requires_sources: bool = False
+    required_source_outputs: list[Literal["company_info", "salary_info"]] = Field(
+        default_factory=list
+    )
 
 
 class EvaluationRecord(BaseModel):
@@ -48,6 +51,8 @@ class EvaluationRecord(BaseModel):
     missing_agents: list[str] = Field(default_factory=list)
     task_success: bool
     missing_outputs: list[str] = Field(default_factory=list)
+    missing_source_outputs: list[str] = Field(default_factory=list)
+    repeated_agents: list[str] = Field(default_factory=list)
     source_count: int = Field(default=0, ge=0)
     error_count: int = Field(default=0, ge=0)
     total_latency_ms: int = Field(default=0, ge=0)

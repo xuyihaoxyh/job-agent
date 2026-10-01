@@ -1,7 +1,7 @@
 [project]
 name = "job-agent"
 version = "0.1.0"
-description = "A backend-only job analysis agent built with LangGraph, MCP, FastAPI, and SQLite."
+description = "A job analysis agent built with LangGraph, MCP, FastAPI, SQLite, and a lightweight web UI."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

@@ -1,10 +1,39 @@
 from __future__ import annotations
 
+import re
+
 from app.schemas.domain import JDInfo, MatchResult, MatchScoreDimension, UserProfile
 
 
+_SKILL_ALIASES = {
+    "golang": "go",
+    "go语言": "go",
+    "springboot": "spring boot",
+    "k8s": "kubernetes",
+    "postgres": "postgresql",
+    "js": "javascript",
+    "ts": "typescript",
+}
+
+
 def _normalized(values: list[str]) -> dict[str, str]:
-    return {value.casefold().strip(): value for value in values if value.strip()}
+    normalized: dict[str, str] = {}
+    for value in values:
+        key = re.sub(r"[\s._-]+", " ", value.casefold()).strip()
+        compact = key.replace(" ", "")
+        canonical = _SKILL_ALIASES.get(key, _SKILL_ALIASES.get(compact, key))
+        if canonical:
+            normalized[canonical] = value
+    return normalized
+
+
+def _education_rank(value: str | None) -> int | None:
+    if not value:
+        return None
+    for label, rank in (("博士", 4), ("硕士", 3), ("本科", 2), ("大专", 1), ("专科", 1)):
+        if label in value:
+            return rank
+    return None
 
 
 def score_match(jd: JDInfo, profile: UserProfile) -> MatchResult:
@@ -16,7 +45,8 @@ def score_match(jd: JDInfo, profile: UserProfile) -> MatchResult:
     if required:
         skill_score = round(70 * len(matched_keys) / len(required))
     else:
-        skill_score = 50
+        # Missing extraction evidence is uncertainty, not a positive match.
+        skill_score = 35
 
     experience_score = 20
     if jd.min_experience_years is not None:
@@ -24,8 +54,24 @@ def score_match(jd: JDInfo, profile: UserProfile) -> MatchResult:
         experience_score = round(min(years / jd.min_experience_years, 1) * 20)
 
     education_score = 10
-    if jd.education_requirements and not profile.education:
-        education_score = 0
+    education_gap: str | None = None
+    if jd.education_requirements:
+        required_ranks = [
+            rank
+            for value in jd.education_requirements
+            if (rank := _education_rank(value)) is not None
+        ]
+        required_rank = min(required_ranks) if required_ranks else None
+        profile_rank = _education_rank(profile.education)
+        if profile_rank is None:
+            education_score = 0
+            education_gap = "学历信息缺失或无法识别，需确认是否满足JD要求"
+        elif required_rank is not None and profile_rank < required_rank:
+            education_score = 0
+            education_gap = (
+                f"学历要求为{'/'.join(jd.education_requirements)}，"
+                f"当前资料为{profile.education}"
+            )
 
     score = max(0, min(100, skill_score + experience_score + education_score))
     if score >= 80:
@@ -42,6 +88,8 @@ def score_match(jd: JDInfo, profile: UserProfile) -> MatchResult:
             f"JD要求至少{jd.min_experience_years:g}年经验，当前资料为"
             f"{profile.years_of_experience or 0:g}年"
         )
+    if education_gap:
+        gaps.append(education_gap)
 
     return MatchResult(
         score=score,
@@ -59,7 +107,7 @@ def score_match(jd: JDInfo, profile: UserProfile) -> MatchResult:
                 detail=(
                     f"匹配 {len(matched_keys)}/{len(required)} 项明确技能"
                     if required
-                    else "JD 未识别出明确技能，使用中性基础分"
+                    else "JD 未识别出明确技能，按不确定信息给予中性分"
                 ),
             ),
             MatchScoreDimension(

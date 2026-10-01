@@ -5,6 +5,7 @@ import asyncio
 import json
 import uuid
 from pathlib import Path
+from time import perf_counter
 
 from app.evaluation.metrics import build_record, summarize
 from app.evaluation.models import EvaluationCase
@@ -22,9 +23,9 @@ class DatasetProfiles:
 
 STATIC_RESULTS = [
     SearchResult(
-        title="示例公司介绍",
+        title="示例科技公司介绍",
         url="https://example.com/company",
-        snippet="示例公司是一家企业软件服务商，主要服务金融和零售客户。",
+        snippet="示例科技是一家企业软件服务商，主要服务金融和零售客户。",
     ),
     SearchResult(
         title="上海 Java 后端招聘 18K-25K",
@@ -56,7 +57,9 @@ async def run(dataset: Path, output: Path) -> None:
     run_id = str(uuid.uuid4())
     records = []
     for case in cases:
+        started_at = perf_counter()
         result = await graph.ainvoke(case.request)
+        result["elapsed_ms"] = max(0, round((perf_counter() - started_at) * 1000))
         result["route_history"] = [event.node for event in result.get("route_events", [])]
         records.append(
             build_record(

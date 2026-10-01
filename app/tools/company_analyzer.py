@@ -100,6 +100,27 @@ def _source_quality(result: SearchResult) -> int:
     return score
 
 
+def _is_publicly_listed(text: str) -> bool:
+    """Require affirmative listing evidence and reject common negative contexts."""
+
+    negative_patterns = (
+        r"(?:未|尚未|没有|并未|不是|非)上市",
+        r"上市(?:申请)?(?:已)?(?:撤回|终止|中止|失败|未通过|被否)",
+        r"(?:撤回|终止|中止)上市(?:申请)?",
+        r"(?:计划|拟|寻求|准备|考虑|冲刺|试图)上市",
+    )
+    cleaned = text
+    for pattern in negative_patterns:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+    positive_patterns = (
+        r"(?:是|为|属于|成为)[^。；\n]{0,12}上市[^。；\n]{0,8}公司",
+        r"(?:于|在)[^。；\n]{0,20}(?:证券交易所|上交所|深交所|港交所|纳斯达克|纽交所)[^。；\n]{0,12}上市",
+        r"股票代码\s*[:：]?\s*[0-9A-Z.]{4,}",
+        r"(?:A股|港股|美股)上市",
+    )
+    return any(re.search(pattern, cleaned, flags=re.IGNORECASE) for pattern in positive_patterns)
+
+
 def _headquarters(company_name: str, results: list[SearchResult]) -> str | None:
     # Prefer infobox/table values because generic snippets may mention the
     # headquarters of subsidiaries or companies being invested in.
@@ -147,7 +168,7 @@ def build_company_info(
     facts = [_clean_text(result.snippet) for result in ranked if result.snippet][:3]
 
     company_types: list[str] = []
-    if "上市" in combined:
+    if _is_publicly_listed(combined):
         company_types.append("上市公司")
     if "民营" in combined:
         company_types.append("民营企业")

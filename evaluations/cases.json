@@ -20,7 +20,8 @@
     },
     "expected_agents": ["intake", "jd", "company", "salary", "match", "report"],
     "required_outputs": ["jd_info", "company_info", "salary_info", "match_result", "final_report"],
-    "requires_sources": true
+    "requires_sources": true,
+    "required_source_outputs": ["company_info", "salary_info"]
   },
   {
     "id": "company-only-001",
@@ -38,7 +39,8 @@
     },
     "expected_agents": ["intake", "company", "report"],
     "required_outputs": ["company_info", "final_report"],
-    "requires_sources": true
+    "requires_sources": true,
+    "required_source_outputs": ["company_info"]
   },
   {
     "id": "salary-only-001",
@@ -56,7 +58,8 @@
     },
     "expected_agents": ["intake", "jd", "salary", "report"],
     "required_outputs": ["jd_info", "salary_info", "final_report"],
-    "requires_sources": true
+    "requires_sources": true,
+    "required_source_outputs": ["salary_info"]
   },
   {
     "id": "match-only-001",
@@ -101,5 +104,131 @@
     "expected_agents": ["intake", "jd", "match", "report"],
     "required_outputs": ["jd_info", "match_result", "final_report"],
     "requires_sources": false
+  },
+  {
+    "id": "comprehensive-go-002",
+    "category": "comprehensive",
+    "description": "Go后端岗位综合分析",
+    "request": {"user_id": "eval-user-006", "question": "综合判断岗位是否适合", "jd_text": "招聘Go后端工程师，要求4年经验，熟悉Go、MySQL、Redis、Kafka和Docker，负责高并发服务研发。", "company_name": "示例科技", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Golang", "MySQL", "Redis", "Docker"], "education": "本科", "years_of_experience": 4}},
+    "expected_agents": ["intake", "jd", "company", "salary", "match", "report"],
+    "required_outputs": ["jd_info", "company_info", "salary_info", "match_result", "final_report"]
+  },
+  {
+    "id": "comprehensive-ai-003",
+    "category": "comprehensive",
+    "description": "AI应用岗位综合分析",
+    "request": {"user_id": "eval-user-007", "question": "分析公司、薪资和个人匹配", "jd_text": "招聘AI应用后端工程师，要求3年经验，熟悉Python、LangChain、LangGraph、Redis和Docker，负责Agent系统研发。", "company_name": "示例科技", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Python", "LangChain", "Redis"], "education": "硕士", "years_of_experience": 3}},
+    "expected_agents": ["intake", "jd", "company", "salary", "match", "report"],
+    "required_outputs": ["jd_info", "company_info", "salary_info", "match_result", "final_report"]
+  },
+  {
+    "id": "company-business-002",
+    "category": "company",
+    "description": "只了解公司主营业务",
+    "request": {"user_id": "eval-user-008", "question": "这家公司主营业务是什么？", "jd_text": "招聘Java开发工程师，负责企业服务平台接口开发，要求熟悉Java、Spring Boot和MySQL。", "company_name": "示例科技", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Java"], "years_of_experience": 2}},
+    "expected_agents": ["intake", "company", "report"],
+    "required_outputs": ["company_info", "final_report"],
+    "requires_sources": true,
+    "required_source_outputs": ["company_info"]
+  },
+  {
+    "id": "company-scale-003",
+    "category": "company",
+    "description": "只了解公司规模与性质",
+    "request": {"user_id": "eval-user-009", "question": "查询公司规模和企业性质", "jd_text": "招聘后端开发工程师，负责内部业务系统建设，要求具备基础系统设计和数据库开发能力。", "company_name": "示例科技", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Java", "MySQL"], "years_of_experience": 3}},
+    "expected_agents": ["intake", "company", "report"],
+    "required_outputs": ["company_info", "final_report"],
+    "requires_sources": true,
+    "required_source_outputs": ["company_info"]
+  },
+  {
+    "id": "company-unknown-004",
+    "category": "company",
+    "description": "未知公司应返回证据不足",
+    "request": {"user_id": "eval-user-010", "question": "这家公司可靠吗？", "jd_text": "招聘软件研发工程师，负责业务系统设计与实现，要求具备两年以上软件开发工作经验。", "company_name": "不存在的测试企业", "target_location": "深圳", "router_mode": "fixed", "user_profile": {"skills": ["Java"], "years_of_experience": 2}},
+    "expected_agents": ["intake", "company", "report"],
+    "required_outputs": ["company_info", "final_report"]
+  },
+  {
+    "id": "salary-senior-java-002",
+    "category": "salary",
+    "description": "资深Java岗位薪资分析",
+    "request": {"user_id": "eval-user-011", "question": "这个资深岗位薪资如何？", "jd_text": "招聘资深Java后端工程师，要求5年经验，熟悉Java、Spring Boot、MySQL、Redis和Kafka。", "company_name": "示例科技", "job_title": "Java后端工程师", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Java"], "years_of_experience": 5}},
+    "expected_agents": ["intake", "jd", "salary", "report"],
+    "required_outputs": ["jd_info", "salary_info", "final_report"],
+    "requires_sources": true,
+    "required_source_outputs": ["salary_info"]
+  },
+  {
+    "id": "salary-go-003",
+    "category": "salary",
+    "description": "Go后端市场薪资分析",
+    "request": {"user_id": "eval-user-012", "question": "Go后端岗位待遇怎样？", "jd_text": "招聘Go后端开发工程师，要求3年经验，熟悉Go、Redis和分布式系统，负责核心服务开发。", "company_name": "示例科技", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Go", "Redis"], "years_of_experience": 3}},
+    "expected_agents": ["intake", "jd", "salary", "report"],
+    "required_outputs": ["jd_info", "salary_info", "final_report"]
+  },
+  {
+    "id": "salary-campus-004",
+    "category": "salary",
+    "description": "校园招聘薪资不得混入社招",
+    "request": {"user_id": "eval-user-013", "question": "校招岗位薪资如何？", "jd_text": "校园招聘Java开发工程师，面向应届毕业生，熟悉Java和MySQL，参与后端服务开发。", "company_name": "示例科技", "employment_type": "campus", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Java", "MySQL"], "education": "本科", "years_of_experience": 0}},
+    "expected_agents": ["intake", "jd", "salary", "report"],
+    "required_outputs": ["jd_info", "salary_info", "final_report"]
+  },
+  {
+    "id": "salary-intern-005",
+    "category": "salary",
+    "description": "实习岗位薪资独立分析",
+    "request": {"user_id": "eval-user-014", "question": "实习岗位待遇如何？", "jd_text": "招聘Java开发实习生，参与后端接口和数据处理功能开发，要求熟悉Java、Spring Boot和MySQL。", "company_name": "示例科技", "employment_type": "intern", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Java"], "education": "本科", "years_of_experience": 0}},
+    "expected_agents": ["intake", "jd", "salary", "report"],
+    "required_outputs": ["jd_info", "salary_info", "final_report"]
+  },
+  {
+    "id": "match-alias-002",
+    "category": "match",
+    "description": "技能别名应正确匹配",
+    "request": {"user_id": "eval-user-015", "question": "我的技能是否匹配？", "jd_text": "招聘Go云原生工程师，要求2年经验，掌握Go、Kubernetes、Docker和Redis，负责容器平台服务开发。", "company_name": "示例科技", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Golang", "K8s", "Docker", "Redis"], "education": "本科", "years_of_experience": 2}},
+    "expected_agents": ["intake", "jd", "match", "report"],
+    "required_outputs": ["jd_info", "match_result", "final_report"]
+  },
+  {
+    "id": "match-experience-003",
+    "category": "match",
+    "description": "工作年限不足应形成缺口",
+    "request": {"user_id": "eval-user-016", "question": "经验是否达到要求？", "jd_text": "招聘Java后端工程师，要求5年研发经验，熟悉Java、MySQL和Redis，负责核心交易系统研发。", "company_name": "示例科技", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Java", "MySQL", "Redis"], "education": "本科", "years_of_experience": 2}},
+    "expected_agents": ["intake", "jd", "match", "report"],
+    "required_outputs": ["jd_info", "match_result", "final_report"]
+  },
+  {
+    "id": "match-education-004",
+    "category": "match",
+    "description": "学历不足应形成缺口",
+    "request": {"user_id": "eval-user-017", "question": "学历和技能是否匹配？", "jd_text": "招聘Java研发工程师，要求本科及以上学历和3年经验，熟悉Java、Spring Boot与MySQL。", "company_name": "示例科技", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Java", "Spring Boot", "MySQL"], "education": "大专", "years_of_experience": 3}},
+    "expected_agents": ["intake", "jd", "match", "report"],
+    "required_outputs": ["jd_info", "match_result", "final_report"]
+  },
+  {
+    "id": "match-missing-profile-005",
+    "category": "match",
+    "description": "资料字段较少时仍给出保守解释",
+    "request": {"user_id": "eval-user-018", "question": "根据有限资料判断匹配度", "jd_text": "招聘Python后端工程师，要求3年经验，掌握Python、PostgreSQL、Redis和Docker，负责API服务开发。", "company_name": "示例科技", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Python"]}},
+    "expected_agents": ["intake", "jd", "match", "report"],
+    "required_outputs": ["jd_info", "match_result", "final_report"]
+  },
+  {
+    "id": "edge-no-explicit-skills-002",
+    "category": "edge",
+    "description": "JD未识别技能时使用保守中性分",
+    "request": {"user_id": "eval-user-019", "question": "分析这个岗位与我的适配情况", "jd_text": "负责业务需求分析、跨团队协调、系统方案设计和项目交付，要求具备良好沟通能力与责任心。", "company_name": "示例科技", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Java"], "education": "本科", "years_of_experience": 3}},
+    "expected_agents": ["intake", "jd", "match", "report"],
+    "required_outputs": ["jd_info", "match_result", "final_report"]
+  },
+  {
+    "id": "edge-long-jd-003",
+    "category": "edge",
+    "description": "较长JD仍能完成完整链路",
+    "request": {"user_id": "eval-user-020", "question": "综合分析复杂岗位", "jd_text": "招聘广告AI应用研发工程师，负责智能问数、投放诊断、预算分配、Agent编排和RAG系统建设，要求3至5年经验，熟悉Java、Python、MySQL、Redis、Kafka、Docker和分布式系统。", "company_name": "示例科技", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Java", "Python", "MySQL", "Redis", "Docker"], "education": "硕士", "years_of_experience": 3}},
+    "expected_agents": ["intake", "jd", "company", "salary", "match", "report"],
+    "required_outputs": ["jd_info", "company_info", "salary_info", "match_result", "final_report"]
   }
 ]

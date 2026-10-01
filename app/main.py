@@ -8,6 +8,10 @@ from fastapi.responses import FileResponse
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from app.api.analyze import router as analyze_router
+from app.api.auth import router as auth_router
+from app.api.profile import router as profile_router
+from app.auth.repository import SQLiteAuthRepository
+from app.auth.rate_limit import LoginRateLimiter
 from app.config import Settings
 from app.graph.builder import build_graph
 from app.graph.dependencies import GraphDependencies
@@ -26,12 +30,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(application: FastAPI):
         active_settings.ensure_directories()
         profiles = SQLiteUserProfileRepository(active_settings.app_db)
+        auth = SQLiteAuthRepository(
+            active_settings.app_db, session_ttl_hours=active_settings.session_ttl_hours
+        )
+        login_limiter = LoginRateLimiter(
+            max_attempts=active_settings.login_max_attempts,
+            window_seconds=active_settings.login_window_seconds,
+        )
         await profiles.setup()
+        await auth.setup()
         model = build_analysis_model(active_settings)
         if active_settings.search_backend == "mcp":
             search = MCPSearchGateway(
                 config_path=active_settings.mcp_config_path,
                 tool_name=active_settings.search_tool_name,
+                timeout_seconds=active_settings.search_timeout_seconds,
             )
         elif active_settings.search_backend == "static":
             search = StaticSearchGateway()
@@ -45,6 +58,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ) as checkpointer:
             application.state.settings = active_settings
             application.state.profiles = profiles
+            application.state.auth = auth
+            application.state.login_limiter = login_limiter
             application.state.graph = build_graph(
                 GraphDependencies(model=model, search=search, profiles=profiles),
                 checkpointer=checkpointer,
@@ -53,6 +68,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     application = FastAPI(title=active_settings.app_name, lifespan=lifespan)
     application.include_router(analyze_router)
+    application.include_router(auth_router)
+    application.include_router(profile_router)
 
     @application.get("/", include_in_schema=False)
     async def web_app() -> FileResponse:

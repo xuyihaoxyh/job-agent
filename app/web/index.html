@@ -25,11 +25,21 @@
     .brand-mark { width:34px; height:34px; display:grid; place-items:center; color:white; background:linear-gradient(145deg,var(--brand-2),var(--brand-dark)); border-radius:10px; box-shadow:0 6px 14px rgba(23,107,80,.2); }
     .brand-mark .icon { width:19px; height:19px; }
     .top-status { display:flex; align-items:center; gap:16px; color:var(--muted); font-size:12px; }
+    .top-actions { display:flex; align-items:center; gap:10px; }
     .status-dot { display:inline-flex; align-items:center; gap:7px; }
     .status-dot::before { content:""; width:7px; height:7px; border-radius:50%; background:#35a778; box-shadow:0 0 0 4px rgba(53,167,120,.11); }
     .mode,.pill { display:inline-flex; align-items:center; gap:6px; border-radius:999px; font-size:11px; font-weight:750; white-space:nowrap; }
     .mode { padding:7px 11px; color:var(--brand); background:var(--brand-soft); border:1px solid #cce2d9; }
     .mode .icon { width:13px; height:13px; }
+    .account { position:relative; }
+    .account-button { display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:999px; padding:4px 9px 4px 4px; background:#fff; color:var(--ink); cursor:pointer; font:inherit; }
+    .account-button:hover { border-color:#bad0c6; }
+    .avatar { width:30px; height:30px; display:grid; place-items:center; border-radius:50%; background:linear-gradient(145deg,var(--brand-2),var(--brand-dark)); color:#fff; font-size:11px; font-weight:800; }
+    .account-name { max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:700; }
+    .account-menu { position:absolute; right:0; top:44px; z-index:20; width:190px; padding:7px; border:1px solid var(--line); border-radius:12px; background:#fff; box-shadow:0 18px 45px rgba(20,45,36,.14); }
+    .account-menu button { width:100%; border:0; border-radius:8px; padding:10px; background:transparent; text-align:left; color:var(--ink-2); cursor:pointer; font:inherit; font-size:12px; }
+    .account-menu button:hover { background:var(--surface-2); }
+    .account-menu .danger { color:var(--red); }
     .hero { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; padding:38px 0 26px; }
     .eyebrow { display:flex; align-items:center; gap:7px; color:var(--brand); font-size:11px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
     .eyebrow .icon { width:14px; height:14px; }
@@ -50,6 +60,9 @@
     .form-group:last-of-type { border-bottom:0; padding-bottom:2px; }
     .group-title { display:flex; align-items:center; gap:7px; margin-bottom:13px; color:var(--ink-2); font-size:12px; font-weight:780; }
     .group-title .icon { width:15px; height:15px; color:var(--brand); }
+    .group-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .profile-state { margin-bottom:13px; color:var(--muted); font-size:10px; }
+    .profile-state.saved { color:var(--brand); }
     .fields { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
     .field { display:flex; flex-direction:column; gap:7px; min-width:0; }
     .wide { grid-column:1/-1; }
@@ -182,9 +195,43 @@
     .attempt-query { margin:5px 0 8px; color:var(--muted); font-size:10px; overflow-wrap:anywhere; }
     .raw-source { display:block; padding:5px 0; color:var(--ink-2); text-decoration:none; font-size:10px; overflow-wrap:anywhere; }
     .raw-source:hover { color:var(--brand); }
+    .auth-screen { min-height:100vh; display:grid; place-items:center; padding:32px 20px; }
+    .auth-layout { width:min(880px,100%); display:grid; grid-template-columns:1.08fr .92fr; overflow:hidden; border:1px solid var(--line); border-radius:22px; background:#fff; box-shadow:0 30px 80px rgba(24,58,45,.12); }
+    .auth-intro { padding:52px; color:#fff; background:linear-gradient(145deg,#176b50,#0e4435); }
+    .auth-intro .brand-mark { margin-bottom:34px; background:rgba(255,255,255,.16); box-shadow:none; }
+    .auth-intro h1 { margin:0 0 14px; font-size:38px; }
+    .auth-intro p { margin:0; color:rgba(255,255,255,.72); line-height:1.75; }
+    .auth-points { display:grid; gap:12px; margin-top:40px; }
+    .auth-point { display:flex; align-items:center; gap:10px; font-size:12px; color:rgba(255,255,255,.85); }
+    .auth-point::before { content:"✓"; width:20px; height:20px; display:grid; place-items:center; border-radius:50%; background:rgba(255,255,255,.14); font-weight:800; }
+    .auth-card { padding:44px 40px; }
+    .auth-card h2 { margin:0 0 6px; font-size:23px; }
+    .auth-subtitle { margin:0 0 25px; color:var(--muted); font-size:12px; }
+    .auth-tabs { display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-bottom:22px; padding:4px; border-radius:10px; background:#eef2f0; }
+    .auth-tabs button { border:0; border-radius:7px; padding:9px; background:transparent; color:var(--muted); cursor:pointer; font:inherit; font-size:12px; font-weight:700; }
+    .auth-tabs button.active { background:#fff; color:var(--brand); box-shadow:0 2px 8px rgba(29,56,46,.08); }
+    .auth-form { display:grid; gap:14px; padding:0; }
+    .auth-error { margin-top:14px; }
+    .auth-hint { color:var(--muted); font-size:10px; line-height:1.55; }
+    .modal-backdrop { position:fixed; inset:0; z-index:50; display:grid; place-items:center; padding:20px; background:rgba(18,32,27,.42); backdrop-filter:blur(3px); }
+    .modal { width:min(560px,100%); max-height:calc(100vh - 40px); overflow:auto; border:1px solid var(--line); border-radius:17px; padding:24px; background:#fff; box-shadow:0 25px 70px rgba(16,38,30,.2); }
+    .modal-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:22px; }
+    .modal-head h2 { margin:0 0 5px; font-size:19px; }
+    .modal-head p { margin:0; color:var(--muted); font-size:11px; }
+    .icon-button { width:32px; height:32px; border:1px solid var(--line); border-radius:9px; background:#fff; color:var(--muted); cursor:pointer; font-size:18px; }
+    .profile-summary { display:grid; grid-template-columns:48px 1fr; align-items:center; gap:12px; margin-bottom:18px; padding:13px; border-radius:12px; background:var(--surface-2); }
+    .profile-summary .avatar { width:48px; height:48px; font-size:16px; }
+    .profile-summary strong,.profile-summary span { display:block; }
+    .profile-summary span { margin-top:3px; color:var(--muted); font-size:11px; }
+    .modal form { padding:0; }
+    .profile-fields { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
+    .profile-fields .wide { grid-column:1/-1; }
+    .modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+    .secondary-button { border:1px solid var(--line-strong); border-radius:9px; padding:9px 13px; background:#fff; color:var(--ink-2); cursor:pointer; font:inherit; font-size:12px; font-weight:700; }
+    .save-button { border:0; border-radius:9px; padding:9px 14px; background:var(--brand); color:#fff; cursor:pointer; font:inherit; font-size:12px; font-weight:700; }
     @media (max-width:1100px) { .shell{width:min(100% - 32px,1420px)}.layout{grid-template-columns:minmax(330px,380px) minmax(0,1fr)}.hero-stats{grid-template-columns:1fr 1fr}.result-grid{grid-template-columns:1fr}.result-panel.full{grid-column:auto} }
-    @media (max-width:860px) { .layout{grid-template-columns:1fr}.input-card{position:static}.hero-note{display:none}.output-card{min-height:520px}.placeholder{min-height:480px} }
-    @media (max-width:560px) { .shell{width:min(100% - 20px,1420px)}.topbar{height:60px}.top-status>.status-dot{display:none}.hero{padding:28px 2px 20px}.hero p{font-size:13px}.card-head,form{padding-left:16px;padding-right:16px}.fields,.facts{grid-template-columns:1fr}.wide{grid-column:auto}.output-card{padding:12px}.hero-stats{grid-template-columns:1fr 1fr}.stat{min-height:98px;padding:12px}.stat strong{font-size:17px}.parallel{grid-template-columns:1fr;max-width:230px}.flow-row{flex-direction:column}.flow-row>.flow-arrow{transform:rotate(90deg)}.metrics{grid-template-columns:1fr 1fr}.section{padding:15px}.result-kicker{align-items:flex-start;flex-direction:column} }
+    @media (max-width:860px) { .layout{grid-template-columns:1fr}.input-card{position:static}.hero-note{display:none}.output-card{min-height:520px}.placeholder{min-height:480px}.auth-layout{grid-template-columns:1fr}.auth-intro{display:none} }
+    @media (max-width:560px) { .shell{width:min(100% - 20px,1420px)}.topbar{height:60px}.top-status>.status-dot,.account-name{display:none}.top-status{gap:7px}.hero{padding:28px 2px 20px}.hero p{font-size:13px}.card-head,form{padding-left:16px;padding-right:16px}.fields,.facts{grid-template-columns:1fr}.wide{grid-column:auto}.output-card{padding:12px}.hero-stats{grid-template-columns:1fr 1fr}.stat{min-height:98px;padding:12px}.stat strong{font-size:17px}.parallel{grid-template-columns:1fr;max-width:230px}.flow-row{flex-direction:column}.flow-row>.flow-arrow{transform:rotate(90deg)}.metrics{grid-template-columns:1fr 1fr}.section{padding:15px}.result-kicker{align-items:flex-start;flex-direction:column}.auth-card{padding:30px 22px} }
   </style>
 </head>
 <body>
@@ -203,10 +250,23 @@
     <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M14 2v5h5M8 12h6M8 16h7"/></symbol>
     <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 7v3a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3v1M11 8l-3 5 3 5"/></symbol>
   </svg>
-  <main class="shell">
+  <section id="authScreen" class="auth-screen hidden">
+    <div class="auth-layout">
+      <div class="auth-intro"><span class="brand-mark"><svg class="icon"><use href="#i-spark"/></svg></span><h1>Job Agent</h1><p>让岗位要求、个人背景与公开数据，在一条可解释的 Agent 链路中完成汇总。</p><div class="auth-points"><div class="auth-point">个人资料随账户安全保存</div><div class="auth-point">分析记录与用户身份隔离</div><div class="auth-point">搜索来源与执行过程可追溯</div></div></div>
+      <div class="auth-card">
+        <h2 id="authTitle">欢迎回来</h2><p id="authSubtitle" class="auth-subtitle">登录后开始你的岗位分析</p>
+        <div class="auth-tabs"><button id="loginTab" class="active" type="button">登录</button><button id="registerTab" type="button">注册</button></div>
+        <form id="loginForm" class="auth-form"><div class="field"><label for="loginIdentity">用户名或邮箱</label><input id="loginIdentity" autocomplete="username" required></div><div class="field"><label for="loginPassword">密码</label><input id="loginPassword" type="password" autocomplete="current-password" required></div><button class="primary-button" type="submit">登录</button></form>
+        <form id="registerForm" class="auth-form hidden"><div class="field"><label for="registerUsername">用户名</label><input id="registerUsername" minlength="3" maxlength="32" pattern="[A-Za-z0-9_-]+" autocomplete="username" required><small>3–32 位英文、数字、下划线或短横线。</small></div><div class="field"><label for="registerEmail">邮箱</label><input id="registerEmail" type="email" autocomplete="email" required></div><div class="field"><label for="registerPassword">密码</label><input id="registerPassword" type="password" minlength="8" autocomplete="new-password" required><small>至少 8 位。</small></div><button class="primary-button" type="submit">创建账户</button></form>
+        <div id="authError" class="error auth-error hidden"></div>
+      </div>
+    </div>
+  </section>
+
+  <main id="appShell" class="shell hidden">
     <nav class="topbar">
       <div class="brand"><span class="brand-mark"><svg class="icon"><use href="#i-spark"/></svg></span><span>Job Agent</span></div>
-      <div class="top-status"><span class="status-dot">服务已就绪</span><span class="mode"><svg class="icon"><use href="#i-route"/></svg>Fixed Router · V1</span></div>
+      <div class="top-actions"><div class="top-status"><span class="status-dot">服务已就绪</span><span class="mode"><svg class="icon"><use href="#i-route"/></svg>Fixed Router · V1</span></div><div class="account"><button id="accountButton" class="account-button" type="button" aria-expanded="false"><span id="topAvatar" class="avatar">U</span><span id="topAccountName" class="account-name">用户</span></button><div id="accountMenu" class="account-menu hidden"><button id="profileButton" type="button">用户中心</button><button id="logoutButton" class="danger" type="button">退出登录</button></div></div></div>
     </nav>
     <header class="hero">
       <div><div class="eyebrow"><svg class="icon"><use href="#i-spark"/></svg>LangGraph · MCP · Job Intelligence</div><h1>岗位分析工作台</h1><p>整合岗位要求、候选人背景与公开数据，生成可解释的求职决策参考。</p></div>
@@ -220,19 +280,18 @@
             <div class="group-title"><svg class="icon"><use href="#i-target"/></svg>目标岗位</div>
             <div class="fields">
               <div class="field"><label for="companyName">公司名称 *</label><input id="companyName" value="示例科技" required></div>
-              <div class="field"><label for="location">目标城市</label><input id="location" value="上海"></div>
+              <div class="field"><label for="location">目标城市</label><input id="location" placeholder="例如：上海"></div>
               <div class="field"><label for="jobTitle">岗位名称</label><input id="jobTitle" placeholder="例如：广告 AI 应用研发工程师"></div>
               <div class="field"><label for="employmentType">招聘类型</label><select id="employmentType"><option value="social" selected>常规社招</option><option value="campus">校园招聘</option><option value="intern">实习招聘</option></select></div>
               <div class="field wide"><label for="jdText">岗位 JD *</label><textarea id="jdText" required>招聘Java后端工程师，要求3年经验，熟悉Java、Spring Boot、MySQL、Redis和Docker，负责核心业务系统设计与开发。</textarea><small>建议粘贴完整职责与任职要求，结果会更准确。</small></div>
             </div>
           </div>
           <div class="form-group">
-            <div class="group-title"><svg class="icon"><use href="#i-user"/></svg>候选人背景</div>
+            <div class="group-heading"><div class="group-title"><svg class="icon"><use href="#i-user"/></svg>候选人背景</div><span id="profileState" class="profile-state">尚未保存</span></div>
             <div class="fields">
-              <div class="field"><label for="userId">用户 ID *</label><input id="userId" value="demo-user" required></div>
-              <div class="field"><label for="experience">工作经验（年）</label><input id="experience" type="number" min="0" step="0.5" value="3"></div>
-              <div class="field wide"><label for="skills">个人技能</label><input id="skills" value="Java, Spring Boot, MySQL, Redis, Docker"><small>使用中文或英文逗号分隔。</small></div>
-              <div class="field wide"><label for="education">学历</label><input id="education" value="计算机相关硕士"></div>
+              <div class="field"><label for="experience">工作经验（年）</label><input id="experience" type="number" min="0" step="0.5" placeholder="例如：3"></div>
+              <div class="field wide"><label for="skills">个人技能</label><input id="skills" placeholder="Java, Spring Boot, MySQL, Redis"><small>登录后会自动读取已保存资料，也可以在这里修改。</small></div>
+              <div class="field wide"><label for="education">学历</label><input id="education" placeholder="例如：计算机相关硕士"></div>
             </div>
           </div>
           <div class="form-group">
@@ -289,6 +348,10 @@
     </div>
   </main>
 
+  <div id="profileModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+    <section class="modal"><div class="modal-head"><div><h2 id="profileTitle">用户中心</h2><p>账户与候选人背景会按用户独立保存</p></div><button id="closeProfile" class="icon-button" type="button" aria-label="关闭">×</button></div><div class="profile-summary"><span id="profileAvatar" class="avatar">U</span><div><strong id="profileUsername">—</strong><span id="profileEmail">—</span></div></div><form id="profileForm"><div class="profile-fields"><div class="field wide"><label for="displayName">显示名称</label><input id="displayName" maxlength="40" required></div><div class="field wide"><label for="profileSkills">个人技能</label><input id="profileSkills" placeholder="Java, Spring Boot, MySQL"></div><div class="field"><label for="profileEducation">学历</label><input id="profileEducation" placeholder="计算机相关硕士"></div><div class="field"><label for="profileExperience">工作经验（年）</label><input id="profileExperience" type="number" min="0" step="0.5"></div><div class="field wide"><label for="profileLocations">意向城市</label><input id="profileLocations" placeholder="上海, 杭州"></div><div class="field wide"><label for="profileRoles">意向岗位</label><input id="profileRoles" placeholder="Java后端, AI应用研发"></div><div class="field wide"><label for="profileExperiences">经历摘要</label><textarea id="profileExperiences" placeholder="每行填写一段项目或工作经历"></textarea></div></div><div class="modal-actions"><button id="cancelProfile" class="secondary-button" type="button">取消</button><button class="save-button" type="submit">保存全部资料</button></div></form><div id="profileError" class="error auth-error hidden"></div></section>
+  </div>
+
   <script>
     const $ = selector => document.querySelector(selector);
     const form = $('#analysisForm'), button = $('#submitButton'), buttonLabel = $('#submitButton span');
@@ -299,6 +362,29 @@
     const addText = (parent, tag, text, className) => { const node=document.createElement(tag); node.textContent=text; if(className) node.className=className; parent.appendChild(node); return node; };
     const money = amount => amount == null ? null : `${Math.round(amount / 1000)}K`;
     const confidenceText = { high:'高可信度', medium:'中可信度', low:'低可信度' };
+    let currentUser=null,currentProfile=null;
+
+    async function api(url,options={}) { const response=await fetch(url,{...options,credentials:'same-origin'});let body=null;if(response.status!==204){try{body=await response.json();}catch{body={};}}if(!response.ok){const error=new Error(body?.detail||`请求失败（${response.status}）`);error.status=response.status;throw error;}return body; }
+    function initials(user){return (user?.display_name||user?.username||'U').trim().slice(0,1).toUpperCase();}
+    function renderAccount(user){currentUser=user;$('#topAvatar').textContent=initials(user);$('#topAccountName').textContent=user.display_name;$('#profileAvatar').textContent=initials(user);$('#profileUsername').textContent=`@${user.username}`;$('#profileEmail').textContent=user.email;$('#displayName').value=user.display_name;}
+    function profilePayloadFromCenter(){const years=Number(value('profileExperience'));return{preferred_locations:splitList(value('profileLocations')),preferred_roles:splitList(value('profileRoles')),skills:splitList(value('profileSkills')),education:value('profileEducation')||null,years_of_experience:value('profileExperience')&&Number.isFinite(years)?years:null,experiences:$('#profileExperiences').value.split(/\r?\n/).map(item=>item.trim()).filter(Boolean)};}
+    function applyProfile(profile){currentProfile=profile||null;const data=profile||{preferred_locations:[],preferred_roles:[],skills:[],education:null,years_of_experience:null,experiences:[]};$('#skills').value=(data.skills||[]).join(', ');$('#education').value=data.education||'';$('#experience').value=data.years_of_experience??'';$('#location').value=data.preferred_locations?.[0]||'';$('#profileSkills').value=(data.skills||[]).join(', ');$('#profileEducation').value=data.education||'';$('#profileExperience').value=data.years_of_experience??'';$('#profileLocations').value=(data.preferred_locations||[]).join(', ');$('#profileRoles').value=(data.preferred_roles||[]).join(', ');$('#profileExperiences').value=(data.experiences||[]).join('\n');const state=$('#profileState');state.textContent=profile?'已从账户加载':'首次分析后自动保存';state.classList.toggle('saved',Boolean(profile));}
+    async function loadProfile(){try{const body=await api('/api/v1/profile');applyProfile(body.profile);}catch(error){if(error.status===401)showAuth();}}
+    function showApp(user){renderAccount(user);$('#authScreen').classList.add('hidden');$('#appShell').classList.remove('hidden');loadProfile();}
+    function resetWorkspace(){applyProfile(null);['companyName','jobTitle','jdText'].forEach(id=>{$(`#${id}`).value='';});$('#employmentType').value='social';result.classList.add('hidden');loading.classList.add('hidden');errorBox.classList.add('hidden');placeholder.classList.remove('hidden');}
+    function showAuth(){currentUser=null;resetWorkspace();selectAuthMode('login');$('#appShell').classList.add('hidden');$('#profileModal').classList.add('hidden');$('#accountMenu').classList.add('hidden');$('#accountButton').setAttribute('aria-expanded','false');$('#authScreen').classList.remove('hidden');}
+    function authError(message){const node=$('#authError');node.textContent=message;node.classList.toggle('hidden',!message);}
+    function selectAuthMode(mode){const login=mode==='login';$('#loginTab').classList.toggle('active',login);$('#registerTab').classList.toggle('active',!login);$('#loginForm').classList.toggle('hidden',!login);$('#registerForm').classList.toggle('hidden',login);$('#authTitle').textContent=login?'欢迎回来':'创建账户';$('#authSubtitle').textContent=login?'登录后开始你的岗位分析':'创建账户并保存个人分析资料';authError('');}
+
+    $('#loginTab').addEventListener('click',()=>selectAuthMode('login'));$('#registerTab').addEventListener('click',()=>selectAuthMode('register'));
+    $('#loginForm').addEventListener('submit',async event=>{event.preventDefault();authError('');try{const body=await api('/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:value('loginIdentity'),password:$('#loginPassword').value})});showApp(body.user);}catch(error){authError(error.message);}});
+    $('#registerForm').addEventListener('submit',async event=>{event.preventDefault();authError('');try{const body=await api('/api/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:value('registerUsername'),email:value('registerEmail'),password:$('#registerPassword').value})});showApp(body.user);}catch(error){authError(error.message);}});
+    $('#accountButton').addEventListener('click',()=>{const menu=$('#accountMenu'),open=menu.classList.toggle('hidden')===false;$('#accountButton').setAttribute('aria-expanded',String(open));});
+    $('#profileButton').addEventListener('click',()=>{$('#accountMenu').classList.add('hidden');$('#accountButton').setAttribute('aria-expanded','false');renderAccount(currentUser);$('#profileModal').classList.remove('hidden');});
+    const closeProfile=()=>{$('#profileModal').classList.add('hidden');$('#profileError').classList.add('hidden');};$('#closeProfile').addEventListener('click',closeProfile);$('#cancelProfile').addEventListener('click',closeProfile);$('#profileModal').addEventListener('click',event=>{if(event.target===$('#profileModal'))closeProfile();});
+    $('#profileForm').addEventListener('submit',async event=>{event.preventDefault();const errorNode=$('#profileError');errorNode.classList.add('hidden');try{const [account,profile]=await Promise.all([api('/api/v1/auth/me',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({display_name:value('displayName')})}),api('/api/v1/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(profilePayloadFromCenter())})]);renderAccount(account.user);applyProfile(profile.profile);closeProfile();}catch(error){errorNode.textContent=error.message;errorNode.classList.remove('hidden');}});
+    $('#logoutButton').addEventListener('click',async()=>{try{await api('/api/v1/auth/logout',{method:'POST'});}finally{showAuth();}});
+    document.addEventListener('click',event=>{if(!event.target.closest('.account')){$('#accountMenu').classList.add('hidden');$('#accountButton').setAttribute('aria-expanded','false');}});
 
     function setConfidence(selector, level) { const node=$(selector); node.className=`pill confidence ${level || 'low'}`; node.textContent=confidenceText[level] || confidenceText.low; }
 
@@ -348,10 +434,11 @@
 
     form.addEventListener('submit',async event=>{
       event.preventDefault();placeholder.classList.add('hidden');result.classList.add('hidden');errorBox.classList.add('hidden');loading.classList.remove('hidden');button.disabled=true;buttonLabel.textContent='分析中…';startLoadingMessages();const years=Number(value('experience'));
-      const payload={user_id:value('userId'),company_name:value('companyName'),job_title:value('jobTitle')||null,employment_type:value('employmentType'),target_location:value('location')||null,question:'分析岗位匹配度、公司情况和预计薪资',jd_text:value('jdText'),router_mode:value('routerMode'),user_profile:{preferred_locations:value('location')?[value('location')]:[],skills:splitList(value('skills')),education:value('education')||null,years_of_experience:Number.isFinite(years)?years:null}};
-      try{const response=await fetch('/api/v1/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const body=await response.json();if(!response.ok)throw new Error(body.detail||`请求失败（${response.status}）`);$('#elapsed').textContent=body.elapsed_ms>=1000?`${(body.elapsed_ms/1000).toFixed(1)} s`:`${body.elapsed_ms} ms`;renderMatch(body.match_result);renderCompany(body.company_info);renderSalary(body.salary_info);renderMarkdown(body.final_report);renderSources(body.sources||[]);renderFlow(body.metrics||[],body.elapsed_ms,body.thread_id,body.errors||[]);result.classList.remove('hidden');}
-      catch(error){errorBox.textContent=error.message||String(error);errorBox.classList.remove('hidden');}finally{clearInterval(loadingTimer);loading.classList.add('hidden');button.disabled=false;buttonLabel.textContent='开始分析';}
+      const profile={preferred_locations:value('location')?[value('location')]:(currentProfile?.preferred_locations||[]),preferred_roles:currentProfile?.preferred_roles||[],skills:splitList(value('skills')),education:value('education')||null,years_of_experience:value('experience')&&Number.isFinite(years)?years:null,experiences:currentProfile?.experiences||[]};const payload={company_name:value('companyName'),job_title:value('jobTitle')||null,employment_type:value('employmentType'),target_location:value('location')||null,question:'分析岗位匹配度、公司情况和预计薪资',jd_text:value('jdText'),router_mode:value('routerMode'),user_profile:profile};
+      try{const body=await api('/api/v1/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});applyProfile(profile);$('#elapsed').textContent=body.elapsed_ms>=1000?`${(body.elapsed_ms/1000).toFixed(1)} s`:`${body.elapsed_ms} ms`;renderMatch(body.match_result);renderCompany(body.company_info);renderSalary(body.salary_info);renderMarkdown(body.final_report);renderSources(body.sources||[]);renderFlow(body.metrics||[],body.elapsed_ms,body.thread_id,body.errors||[]);result.classList.remove('hidden');}
+      catch(error){if(error.status===401){showAuth();authError('登录已过期，请重新登录');}else{errorBox.textContent=error.message||String(error);errorBox.classList.remove('hidden');}}finally{clearInterval(loadingTimer);loading.classList.add('hidden');button.disabled=false;buttonLabel.textContent='开始分析';}
     });
+    api('/api/v1/auth/me').then(body=>showApp(body.user)).catch(()=>showAuth());
   </script>
 </body>
 </html>

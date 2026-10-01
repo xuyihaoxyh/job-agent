@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Literal
+from urllib.parse import urlsplit
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 def utc_now() -> datetime:
@@ -17,11 +18,27 @@ class Source(BaseModel):
     snippet: str | None = None
     accessed_at: datetime = Field(default_factory=utc_now)
 
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, value: str) -> str:
+        parsed = urlsplit(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("source URL must use http or https")
+        return value
+
 
 class SearchResult(BaseModel):
     title: str
     url: str
     snippet: str = ""
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, value: str) -> str:
+        parsed = urlsplit(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("search result URL must use http or https")
+        return value
 
 
 class UserProfile(BaseModel):

@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 
 from app.graph.dependencies import GraphDependencies
 from app.graph.nodes.common import completed, timer
 from app.graph.state import JobAnalysisState
 from app.schemas.domain import CompanyInfo, NodeError, RouteEvent, Source
 from app.tools.company_analyzer import build_company_info, filter_company_results
+
+
+logger = logging.getLogger(__name__)
 
 
 def _source_id(url: str, index: int) -> str:
@@ -48,6 +52,7 @@ def make_company_node(deps: GraphDependencies):
                 **completed("company", started_at),
             }
         except Exception as exc:
+            logger.exception("Company search failed for %s", company_name)
             info = CompanyInfo(
                 company_name=company_name,
                 summary="公司信息搜索失败，报告将使用降级结果。",
@@ -57,7 +62,7 @@ def make_company_node(deps: GraphDependencies):
             result["route_events"] = [RouteEvent(node="company", status="degraded")]
             return {
                 "company_info": info,
-                "errors": [NodeError(node="company", message=str(exc))],
+                "errors": [NodeError(node="company", message="公司公开信息搜索失败")],
                 **result,
             }
 

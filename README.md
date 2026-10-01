@@ -9,7 +9,7 @@
 1. 显式 `StateGraph` 和 Fixed Router
 2. 可切换的离线模型/OpenAI 模型
 3. 一个真实的 stdio 搜索 MCP Server
-4. FastAPI、SQLite Checkpointer 和长期用户资料
+4. FastAPI、SQLite Checkpointer、账户登录和长期用户资料
 
 Hybrid Router、LLM Router 和 Skills 暂未加入，它们属于后续里程碑。
 
@@ -27,7 +27,7 @@ http://localhost:8000/
 http://localhost:8001/
 ```
 
-页面可以提交 JD、公司和个人资料，并展示 Fixed Router 的执行顺序、各节点耗时、匹配分、来源与最终报告。LLM 和 Hybrid 选项暂时禁用，等对应 Router 实现后再开放。
+页面支持注册、登录和右上角用户中心。候选人技能、学历、经验、意向城市、意向岗位和经历摘要按账户独立保存，登录后自动回填，无需每次重新输入。登录后可以提交 JD、公司和个人资料，并展示 Fixed Router 的执行顺序、各节点耗时、匹配分、来源与最终报告。LLM 和 Hybrid 选项暂时禁用，等对应 Router 实现后再开放。
 
 当前结果页还会展示规则评分维度、结构化公司画像、薪资样本数与可信度。开发者详情中的端到端耗时是用户实际等待时间；Company、Salary、Match 的节点耗时属于并行工作量，不能直接相加作为等待时间。
 
@@ -68,12 +68,13 @@ MCP 搜索结果在进入结构化提取前会先进行相关性校验：
 - 无关结果不会进入最终来源，也不会参与可信度和薪资区间计算。
 - 没有合格证据时返回“无法验证/信息不足”；搜索不到不等于公司不存在。
 - Report 只能汇总经过过滤的结构化字段，无来源时不得补写公司或薪资事实。
+- 外部来源 URL 只接受 HTTP/HTTPS；MCP 初始化有并发锁，搜索调用有超时保护。
 
 ## 数据存储
 
 ```text
 data/checkpoints.db  LangGraph thread 状态和检查点
-data/app.db          跨 thread 的用户资料
+data/app.db          用户账户、登录会话、thread 归属和长期用户资料
 ```
 
 ## 本地启动
@@ -117,6 +118,7 @@ OPENAI_API_KEY=你的OpenAIKey
 
 SEARCH_BACKEND=mcp
 TAVILY_API_KEY=你的TavilyKey
+SEARCH_TIMEOUT_SECONDS=35
 ```
 
 启动时，Company 和 Salary 节点会通过 `langchain-mcp-adapters` 连接
@@ -131,13 +133,28 @@ SEARCH_BACKEND=mcp
 
 ## API
 
+### 注册并保存 Cookie
+
+```bash
+curl -c cookies.txt -X POST http://localhost:8001/api/v1/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "username": "user_001",
+    "email": "user_001@example.com",
+    "password": "your-password"
+  }'
+```
+
+也可以通过 `POST /api/v1/auth/login` 使用用户名/邮箱和密码登录。会话保存在
+HttpOnly Cookie 中；默认有效期为 168 小时。连续登录失败默认限制为 5 次/5 分钟。
+本地使用 `SESSION_COOKIE_SECURE=false`，部署到 HTTPS 环境时应改为 `true`。
+
 ### 创建分析
 
 ```bash
-curl -X POST http://localhost:8001/api/v1/analyze \
+curl -b cookies.txt -X POST http://localhost:8001/api/v1/analyze \
   -H 'Content-Type: application/json' \
   -d '{
-    "user_id": "user_001",
     "jd_text": "招聘Java后端工程师，要求3年经验，熟悉Java、Spring Boot、MySQL、Redis和Docker，负责核心业务系统设计与开发。",
     "company_name": "示例科技",
     "job_title": "Java后端工程师",
@@ -155,16 +172,27 @@ curl -X POST http://localhost:8001/api/v1/analyze \
   }'
 ```
 
-第一次分析必须提交 `user_profile`。API 会将它保存到 `app.db`；同一个 `user_id`
-之后可以省略该字段。
+第一次分析必须提交 `user_profile`。API 会将它保存到 `app.db`；同一登录账户之后
+可以省略该字段。`user_id` 不再由客户端提交，而是从登录会话中取得。
 
-响应包含 `thread_id`、匹配结果、公司信息、薪资信息、来源、最终报告和完整路由历史。
+响应包含服务端生成的 `thread_id`、匹配结果、公司信息、薪资信息、来源、最终报告和完整路由历史。客户端不能指定 `thread_id`，避免跨用户操作其他检查点。
+
+### 候选人资料
+
+```text
+GET /api/v1/profile
+PUT /api/v1/profile
+```
+
+资料与当前登录账户绑定。分析请求提交 `user_profile` 时也会同步更新这份长期资料；后续登录页面会自动读取并回填。
 
 ### 恢复 thread 状态
 
 ```bash
-curl http://localhost:8001/api/v1/threads/<thread_id>
+curl -b cookies.txt http://localhost:8001/api/v1/threads/<thread_id>
 ```
+
+thread 与创建它的账户绑定，其他登录用户无法读取。
 
 ### 健康检查与接口文档
 
@@ -202,13 +230,14 @@ pytest
 - 无关搜索结果的实体与岗位相关性过滤
 - 本地匹配和薪资工具
 - SQLite 用户资料读写
+- 注册、登录、退出、Cookie 会话和用户隔离
 - FastAPI 分析与 thread 恢复
 - Web 页面入口和 API 指标字段
 - 评估数据集与路由指标计算
 
 ## 路由评估基线
 
-`evaluations/cases.json` 保存 Router 无关的固定测试集。每条用例标注理想情况下最少需要执行的 Agent，因此可以公平比较 Fixed、LLM 和 Hybrid，而不是为 Fixed 单独降低标准。
+`evaluations/cases.json` 保存 20 条 Router 无关的固定测试用例。每条用例标注理想情况下最少需要执行的 Agent，因此可以公平比较 Fixed、LLM 和 Hybrid，而不是为 Fixed 单独降低标准。
 
 运行当前 Fixed 基线：
 
@@ -216,12 +245,13 @@ pytest
 python -m app.evaluation.runner
 ```
 
-控制台会输出任务成功率、路由 Precision/Recall、完全匹配率、延迟和 Token 指标；逐条结果写入 `evaluations/results/fixed.jsonl`，该运行产物默认不提交 Git。
+控制台会输出任务成功率、路由 Precision/Recall、完全匹配率、端到端延迟和 Token 指标；逐条结果写入 `evaluations/results/fixed.jsonl`，该运行产物默认不提交 Git。离线 Mock 基线的 Token 为 0；使用真实模型时会从模型响应元数据采集。
 
 主要指标：
 
 - `task_success_rate`：要求的输出字段和来源是否完整。
-- `route_precision`：实际执行的 Agent 中有多少是必要的，可反映冗余调用。
+- `route_precision`：实际执行的 Agent 调用中有多少是必要的，重复调用也会降低该指标。
 - `route_recall`：必要 Agent 是否都被执行。
-- `exact_route_match`：实际与理想 Agent 集合是否完全一致。
-- `total_latency_ms`、`token_usage`：性能和模型成本。
+- `exact_route_match`：实际与理想 Agent 调用次数是否完全一致。
+- `total_latency_ms`：端到端真实等待时间，不将并行节点耗时相加。
+- `token_usage`：JD 与 Report 模型调用返回的真实 Token 总量。
