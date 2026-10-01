@@ -1,3 +1,15 @@
-from app.evaluation.models import EvaluationCase, EvaluationRecord, EvaluationSummary
+from app.evaluation.models import (
+    AssertionResult,
+    EvaluationAssertion,
+    EvaluationCase,
+    EvaluationRecord,
+    EvaluationSummary,
+)
 
-__all__ = ["EvaluationCase", "EvaluationRecord", "EvaluationSummary"]
+__all__ = [
+    "AssertionResult",
+    "EvaluationAssertion",
+    "EvaluationCase",
+    "EvaluationRecord",
+    "EvaluationSummary",
+]

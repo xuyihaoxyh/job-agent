@@ -21,7 +21,12 @@
     "expected_agents": ["intake", "jd", "company", "salary", "match", "report"],
     "required_outputs": ["jd_info", "company_info", "salary_info", "match_result", "final_report"],
     "requires_sources": true,
-    "required_source_outputs": ["company_info", "salary_info"]
+    "required_source_outputs": ["company_info", "salary_info"],
+    "assertions": [
+      {"path": "jd_info.required_skills", "operator": "contains_all", "expected": ["Java", "Spring Boot", "MySQL", "Redis", "Docker"]},
+      {"path": "match_result.score", "operator": "equals", "expected": 100},
+      {"path": "salary_info.data_scope", "operator": "equals", "expected": "market"}
+    ]
   },
   {
     "id": "company-only-001",
@@ -38,9 +43,14 @@
       "user_profile": {"skills": ["Java", "MySQL"], "years_of_experience": 2}
     },
     "expected_agents": ["intake", "company", "report"],
+    "forbidden_agents": ["salary", "match"],
     "required_outputs": ["company_info", "final_report"],
     "requires_sources": true,
-    "required_source_outputs": ["company_info"]
+    "required_source_outputs": ["company_info"],
+    "assertions": [
+      {"path": "company_info.summary", "operator": "contains", "expected": "示例科技"},
+      {"path": "company_info.sources", "operator": "not_empty"}
+    ]
   },
   {
     "id": "salary-only-001",
@@ -57,9 +67,15 @@
       "user_profile": {"skills": ["Java", "Spring Boot"], "years_of_experience": 2}
     },
     "expected_agents": ["intake", "jd", "salary", "report"],
+    "forbidden_agents": ["company", "match"],
     "required_outputs": ["jd_info", "salary_info", "final_report"],
     "requires_sources": true,
-    "required_source_outputs": ["salary_info"]
+    "required_source_outputs": ["salary_info"],
+    "assertions": [
+      {"path": "salary_info.data_scope", "operator": "equals", "expected": "market"},
+      {"path": "salary_info.minimum", "operator": "equals", "expected": 18000},
+      {"path": "salary_info.maximum", "operator": "equals", "expected": 25000}
+    ]
   },
   {
     "id": "match-only-001",
@@ -80,8 +96,13 @@
       }
     },
     "expected_agents": ["intake", "jd", "match", "report"],
+    "forbidden_agents": ["company", "salary"],
     "required_outputs": ["jd_info", "match_result", "final_report"],
-    "requires_sources": false
+    "requires_sources": false,
+    "assertions": [
+      {"path": "match_result.missing_skills", "operator": "contains", "expected": "Kubernetes"},
+      {"path": "match_result.recommendation", "operator": "equals", "expected": "建议投递"}
+    ]
   },
   {
     "id": "skill-gap-001",
@@ -102,8 +123,13 @@
       }
     },
     "expected_agents": ["intake", "jd", "match", "report"],
+    "forbidden_agents": ["company", "salary"],
     "required_outputs": ["jd_info", "match_result", "final_report"],
-    "requires_sources": false
+    "requires_sources": false,
+    "assertions": [
+      {"path": "match_result.recommendation", "operator": "equals", "expected": "谨慎投递"},
+      {"path": "match_result.missing_skills", "operator": "contains_all", "expected": ["Spring Boot", "Redis", "Kafka", "Docker", "Kubernetes"]}
+    ]
   },
   {
     "id": "comprehensive-go-002",
@@ -147,7 +173,13 @@
     "description": "未知公司应返回证据不足",
     "request": {"user_id": "eval-user-010", "question": "这家公司可靠吗？", "jd_text": "招聘软件研发工程师，负责业务系统设计与实现，要求具备两年以上软件开发工作经验。", "company_name": "不存在的测试企业", "target_location": "深圳", "router_mode": "fixed", "user_profile": {"skills": ["Java"], "years_of_experience": 2}},
     "expected_agents": ["intake", "company", "report"],
-    "required_outputs": ["company_info", "final_report"]
+    "forbidden_agents": ["salary", "match"],
+    "required_outputs": ["company_info", "final_report"],
+    "assertions": [
+      {"path": "company_info.sources", "operator": "is_empty"},
+      {"path": "company_info.summary", "operator": "contains", "expected": "未找到"},
+      {"path": "final_report", "operator": "contains", "expected": "搜索不到相关信息不代表公司不存在"}
+    ]
   },
   {
     "id": "salary-senior-java-002",

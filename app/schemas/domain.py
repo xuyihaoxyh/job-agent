@@ -149,3 +149,6 @@ class NodeMetric(BaseModel):
     node: str
     latency_ms: int = Field(ge=0)
     token_usage: int = Field(default=0, ge=0)
+    input_tokens: int = Field(default=0, ge=0)
+    output_tokens: int = Field(default=0, ge=0)
+    model_calls: int = Field(default=0, ge=0)

@@ -258,7 +258,7 @@ GitHub Actions 会自动执行以上检查并验证 Docker 镜像能够构建。
 
 ## 路由评估基线
 
-`evaluations/cases.json` 保存 20 条 Router 无关的固定测试用例。每条用例标注理想情况下最少需要执行的 Agent，因此可以公平比较 Fixed、LLM 和 Hybrid，而不是为 Fixed 单独降低标准。
+`evaluations/cases.json` 保存 20 条 Router 无关的固定测试用例。每条用例可以标注理想情况下最少需要执行的 Agent、禁止调用的 Agent，以及针对嵌套输出字段的 Gold Label 断言，因此可以公平比较 Fixed、LLM 和 Hybrid，而不是为 Fixed 单独降低标准。
 
 运行当前 Fixed 基线：
 
@@ -266,13 +266,30 @@ GitHub Actions 会自动执行以上检查并验证 Docker 镜像能够构建。
 python -m app.evaluation.runner
 ```
 
-控制台会输出任务成功率、路由 Precision/Recall、完全匹配率、端到端延迟和 Token 指标；逐条结果写入 `evaluations/results/fixed.jsonl`，该运行产物默认不提交 Git。离线 Mock 基线的 Token 为 0；使用真实模型时会从模型响应元数据采集。
+默认每条用例只运行一轮，并使用 Mock 模型与固定搜索快照，不产生 API 费用。控制台会输出任务成功率、路由 Precision/Recall/F1、完全匹配率、禁止 Agent 违规率、Gold Label 准确率、公司事实来源覆盖率、P50/P95 延迟、输入/输出 Token、模型调用次数及估算费用；逐条结果写入 `evaluations/results/fixed.jsonl`，该运行产物默认不提交 Git。
+
+真实模型评估必须显式确认，并可设置预算上限：
+
+```bash
+python -m app.evaluation.runner \
+  --model-backend openai \
+  --model-name gpt-4.1-mini \
+  --confirm-live \
+  --repeats 1 \
+  --max-cost-usd 2
+```
+
+`--max-cost-usd` 会在每条用例结束后根据实际 Token 估价，并在下一条用例开始前检查预算，因此最多可能超出单条用例的费用。中断后增加 `--resume` 可跳过已经完成的“用例 + 轮次 + Router”组合。价格会变化，可通过 `--input-price-per-million` 和 `--output-price-per-million` 按当前模型价格覆盖默认值。
 
 主要指标：
 
 - `task_success_rate`：要求的输出字段和来源是否完整。
 - `route_precision`：实际执行的 Agent 调用中有多少是必要的，重复调用也会降低该指标。
 - `route_recall`：必要 Agent 是否都被执行。
+- `route_f1`：综合衡量路由精确率与召回率。
 - `exact_route_match`：实际与理想 Agent 调用次数是否完全一致。
+- `assertion_accuracy`：结构化结果满足人工 Gold Label 的比例，不再只检查字段是否存在。
+- `grounded_claim_rate`：公司事实中来源 ID 能对应到有效来源的比例。
+- `forbidden_agent_violation_rate`：执行了用例明确禁止的无关 Agent 的比例。
 - `total_latency_ms`：端到端真实等待时间，不将并行节点耗时相加。
 - `token_usage`：JD 与 Report 模型调用返回的真实 Token 总量。

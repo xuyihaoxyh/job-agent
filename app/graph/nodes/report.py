@@ -32,7 +32,9 @@ def make_report_node(deps: GraphDependencies):
                 logger.exception("Report generation failed; using deterministic fallback")
                 report = await DeterministicAnalysisModel().write_report(**arguments)
                 degraded = True
-        node_result = completed("report", started_at, token_usage=token_usage(usage))
+        node_result = completed(
+            "report", started_at, **token_usage(usage), model_calls=1
+        )
         if degraded:
             node_result["route_events"] = [RouteEvent(node="report", status="degraded")]
             node_result["errors"] = [
