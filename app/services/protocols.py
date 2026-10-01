@@ -6,6 +6,7 @@ from app.schemas.domain import (
     CompanyInfo,
     JDInfo,
     MatchResult,
+    RouterDecision,
     SalaryInfo,
     SearchResult,
     UserProfile,
@@ -15,14 +16,21 @@ from app.schemas.domain import (
 class AnalysisModel(Protocol):
     async def extract_jd(self, jd_text: str) -> JDInfo: ...
 
+    async def choose_next_agent(
+        self,
+        *,
+        question: str,
+        completed_agents: list[str],
+    ) -> RouterDecision: ...
+
     async def write_report(
         self,
         *,
         question: str,
         jd_info: JDInfo,
-        company_info: CompanyInfo,
-        salary_info: SalaryInfo,
-        match_result: MatchResult,
+        company_info: CompanyInfo | None,
+        salary_info: SalaryInfo | None,
+        match_result: MatchResult | None,
         user_profile: UserProfile,
     ) -> str: ...
 
@@ -33,4 +41,3 @@ class SearchGateway(Protocol):
 
 class UserProfileReader(Protocol):
     async def get(self, user_id: str) -> UserProfile | None: ...
-

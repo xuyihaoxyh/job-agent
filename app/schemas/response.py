@@ -4,18 +4,27 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas.domain import CompanyInfo, MatchResult, NodeMetric, SalaryInfo, Source
+from app.schemas.domain import (
+    CompanyInfo,
+    MatchResult,
+    NodeMetric,
+    RouterDecision,
+    SalaryInfo,
+    Source,
+)
 
 
 class AnalyzeResponse(BaseModel):
     thread_id: str
     status: Literal["completed", "failed", "running"]
+    router_mode: Literal["fixed", "llm"]
     match_result: MatchResult | None = None
     company_info: CompanyInfo | None = None
     salary_info: SalaryInfo | None = None
     sources: list[Source] = Field(default_factory=list)
     route_history: list[str] = Field(default_factory=list)
     metrics: list[NodeMetric] = Field(default_factory=list)
+    router_decisions: list[RouterDecision] = Field(default_factory=list)
     step_count: int = 0
     elapsed_ms: int = Field(default=0, ge=0)
     final_report: str | None = None

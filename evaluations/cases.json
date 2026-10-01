@@ -42,7 +42,7 @@
       "router_mode": "fixed",
       "user_profile": {"skills": ["Java", "MySQL"], "years_of_experience": 2}
     },
-    "expected_agents": ["intake", "company", "report"],
+    "expected_agents": ["intake", "jd", "company", "report"],
     "forbidden_agents": ["salary", "match"],
     "required_outputs": ["company_info", "final_report"],
     "requires_sources": true,
@@ -152,7 +152,7 @@
     "category": "company",
     "description": "只了解公司主营业务",
     "request": {"user_id": "eval-user-008", "question": "这家公司主营业务是什么？", "jd_text": "招聘Java开发工程师，负责企业服务平台接口开发，要求熟悉Java、Spring Boot和MySQL。", "company_name": "示例科技", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Java"], "years_of_experience": 2}},
-    "expected_agents": ["intake", "company", "report"],
+    "expected_agents": ["intake", "jd", "company", "report"],
     "required_outputs": ["company_info", "final_report"],
     "requires_sources": true,
     "required_source_outputs": ["company_info"]
@@ -162,7 +162,7 @@
     "category": "company",
     "description": "只了解公司规模与性质",
     "request": {"user_id": "eval-user-009", "question": "查询公司规模和企业性质", "jd_text": "招聘后端开发工程师，负责内部业务系统建设，要求具备基础系统设计和数据库开发能力。", "company_name": "示例科技", "target_location": "上海", "router_mode": "fixed", "user_profile": {"skills": ["Java", "MySQL"], "years_of_experience": 3}},
-    "expected_agents": ["intake", "company", "report"],
+    "expected_agents": ["intake", "jd", "company", "report"],
     "required_outputs": ["company_info", "final_report"],
     "requires_sources": true,
     "required_source_outputs": ["company_info"]
@@ -172,7 +172,7 @@
     "category": "company",
     "description": "未知公司应返回证据不足",
     "request": {"user_id": "eval-user-010", "question": "这家公司可靠吗？", "jd_text": "招聘软件研发工程师，负责业务系统设计与实现，要求具备两年以上软件开发工作经验。", "company_name": "不存在的测试企业", "target_location": "深圳", "router_mode": "fixed", "user_profile": {"skills": ["Java"], "years_of_experience": 2}},
-    "expected_agents": ["intake", "company", "report"],
+    "expected_agents": ["intake", "jd", "company", "report"],
     "forbidden_agents": ["salary", "match"],
     "required_outputs": ["company_info", "final_report"],
     "assertions": [

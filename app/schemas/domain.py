@@ -138,6 +138,12 @@ class RouteEvent(BaseModel):
     timestamp: datetime = Field(default_factory=utc_now)
 
 
+class RouterDecision(BaseModel):
+    next_agent: Literal["company", "salary", "match", "report"]
+    reason: str
+    timestamp: datetime = Field(default_factory=utc_now)
+
+
 class NodeError(BaseModel):
     node: str
     message: str

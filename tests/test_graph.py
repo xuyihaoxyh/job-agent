@@ -8,7 +8,7 @@ import pytest
 from app.graph.builder import build_graph
 from app.graph.dependencies import GraphDependencies
 from app.mcp.client import StaticSearchGateway
-from app.schemas.domain import SearchResult, UserProfile
+from app.schemas.domain import RouterDecision, SearchResult, UserProfile
 from app.services.model import DeterministicAnalysisModel
 
 
@@ -66,6 +66,84 @@ async def test_fixed_graph_completes_all_nodes(profile, search_results):
     assert result["salary_info"].minimum is not None
     assert result["final_report"].startswith("# 岗位分析报告")
     assert len(result["sources"]) >= 3
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("question", "expected_route", "missing_outputs"),
+    [
+        (
+            "这家公司主营业务和规模如何？",
+            ["intake", "jd", "company", "report"],
+            ["salary_info", "match_result"],
+        ),
+        (
+            "我的技能和经验是否匹配这个岗位？",
+            ["intake", "jd", "match", "report"],
+            ["company_info", "salary_info"],
+        ),
+        (
+            "分析岗位匹配度、公司情况和预计薪资",
+            ["intake", "jd", "company", "salary", "match", "report"],
+            [],
+        ),
+    ],
+)
+async def test_llm_router_selects_only_required_agents(
+    profile,
+    search_results,
+    question,
+    expected_route,
+    missing_outputs,
+):
+    graph = build_graph(
+        GraphDependencies(
+            model=DeterministicAnalysisModel(),
+            search=StaticSearchGateway(search_results),
+            profiles=InMemoryProfiles(profile),
+        ),
+        router_mode="llm",
+    )
+    payload = graph_input(profile)
+    payload.update({"question": question, "router_mode": "llm"})
+
+    result = await graph.ainvoke(payload)
+    route = [event.node for event in result["route_events"]]
+
+    assert route == expected_route
+    assert result["status"] == "completed"
+    assert result["router_decisions"][-1].next_agent == "report"
+    assert len(result["router_decisions"]) == len(expected_route) - 2
+    assert sum(metric.node == "supervisor" for metric in result["metrics"]) == len(
+        result["router_decisions"]
+    )
+    for output in missing_outputs:
+        assert output not in result
+
+
+@pytest.mark.asyncio
+async def test_llm_router_stops_repeated_decisions(profile, search_results):
+    class RepeatingRouter(DeterministicAnalysisModel):
+        async def choose_next_agent(self, **kwargs):
+            return RouterDecision(next_agent="company", reason="repeat for test")
+
+    graph = build_graph(
+        GraphDependencies(
+            model=RepeatingRouter(),
+            search=StaticSearchGateway(search_results),
+            profiles=InMemoryProfiles(profile),
+        ),
+        router_mode="llm",
+    )
+    payload = graph_input(profile)
+    payload["router_mode"] = "llm"
+
+    result = await graph.ainvoke(payload)
+
+    assert result["status"] == "completed"
+    assert result["router_decisions"][-1].next_agent == "report"
+    assert len(result["router_decisions"]) == 9
+    assert any("最大决策次数" in error.message for error in result["errors"])
 
 
 @pytest.mark.asyncio

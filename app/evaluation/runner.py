@@ -65,7 +65,7 @@ def _route_history(result: dict) -> list[str]:
 
 
 def _build_graph(router_mode: RouterMode, settings: Settings):
-    if router_mode != "fixed":
+    if router_mode == "hybrid":
         raise ValueError(
             f"Router {router_mode!r} is not implemented yet; run the fixed baseline first"
         )
@@ -74,7 +74,8 @@ def _build_graph(router_mode: RouterMode, settings: Settings):
             model=build_analysis_model(settings),
             search=StaticSearchGateway(STATIC_RESULTS),
             profiles=DatasetProfiles(),
-        )
+        ),
+        router_mode=router_mode,
     )
 
 

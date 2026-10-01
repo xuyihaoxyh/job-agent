@@ -36,6 +36,7 @@ CHECKPOINT_TYPES = [
         "NodeError",
         "NodeMetric",
         "RouteEvent",
+        "RouterDecision",
         "SalaryInfo",
         "SalarySearchAttempt",
         "Source",
@@ -84,10 +85,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             application.state.history = history
             application.state.auth = auth
             application.state.login_limiter = login_limiter
-            application.state.graph = build_graph(
-                GraphDependencies(model=model, search=search, profiles=profiles),
-                checkpointer=checkpointer,
+            dependencies = GraphDependencies(
+                model=model,
+                search=search,
+                profiles=profiles,
             )
+            application.state.graphs = {
+                mode: build_graph(
+                    dependencies,
+                    router_mode=mode,
+                    checkpointer=checkpointer,
+                )
+                for mode in ("fixed", "llm")
+            }
+            # Keep the fixed graph alias for compatibility with existing callers.
+            application.state.graph = application.state.graphs["fixed"]
             yield
 
     application = FastAPI(title=active_settings.app_name, lifespan=lifespan)

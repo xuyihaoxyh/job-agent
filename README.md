@@ -6,12 +6,12 @@
 
 已完成里程碑 1–4：
 
-1. 显式 `StateGraph` 和 Fixed Router
+1. 显式 `StateGraph`、Fixed Router 和 LLM Supervisor Router
 2. 可切换的离线模型/OpenAI 模型
 3. 一个真实的 stdio 搜索 MCP Server
 4. FastAPI、SQLite Checkpointer、账户登录、长期用户资料和分析历史
 
-Hybrid Router、LLM Router 和 Skills 暂未加入，它们属于后续里程碑。
+Hybrid Router 和 Skills 暂未加入，它们属于后续里程碑。
 
 ## Web 人工验证
 
@@ -27,7 +27,7 @@ http://localhost:8000/
 http://localhost:8001/
 ```
 
-页面支持注册、登录和右上角用户中心。候选人技能、学历、经验、意向城市、意向岗位和经历摘要按账户独立保存，登录后自动回填，无需每次重新输入。用户中心会列出当前账户的分析历史，点击记录可从 LangGraph checkpoint 恢复完整结果。登录后可以提交 JD、公司和个人资料，并展示 Fixed Router 的执行顺序、各节点耗时、匹配分、来源与最终报告。LLM 和 Hybrid 选项暂时禁用，等对应 Router 实现后再开放。
+页面支持注册、登录和右上角用户中心。候选人技能、学历、经验、意向城市、意向岗位和经历摘要按账户独立保存，登录后自动回填，无需每次重新输入。用户中心会列出当前账户的分析历史，点击记录可从 LangGraph checkpoint 恢复完整结果。登录后可以提交 JD、公司和个人资料，并在 Fixed V1 与 LLM V2 之间切换。开发者详情会展示业务节点、Supervisor 决策、耗时、来源与最终报告；Hybrid 选项将在 V3 开放。
 
 当前结果页还会展示规则评分维度、结构化公司画像、薪资样本数与可信度。开发者详情中的端到端耗时是用户实际等待时间；Company、Salary、Match 的节点耗时属于并行工作量，不能直接相加作为等待时间。
 
@@ -54,6 +54,19 @@ flowchart TD
 - `Report`：只汇总已有结构化事实，不拥有搜索工具。
 
 Company、Salary、Match 在 JD 完成后并行，Report 等待三条分支全部结束。
+
+LLM V2 复用相同业务节点，但在 JD 后通过 Supervisor 动态选择必要节点：
+
+```mermaid
+flowchart TD
+    START --> Intake --> JD --> Supervisor
+    Supervisor --> Company --> Supervisor
+    Supervisor --> Salary --> Supervisor
+    Supervisor --> Match --> Supervisor
+    Supervisor --> Report --> END
+```
+
+Supervisor 使用结构化输出选择 `company`、`salary`、`match` 或 `report`。最多允许 8 次路由决策，达到上限后强制进入降级报告，避免模型循环。Supervisor 的耗时、Token 和决策理由单独记录，不计入业务路由 Precision。
 
 ### 搜索证据约束
 
@@ -183,6 +196,8 @@ curl -b cookies.txt -X POST http://localhost:8001/api/v1/analyze \
 
 响应包含服务端生成的 `thread_id`、匹配结果、公司信息、薪资信息、来源、最终报告和完整路由历史。客户端不能指定 `thread_id`，避免跨用户操作其他检查点。
 
+将 `router_mode` 改为 `llm` 即可启用 V2。只询问公司时，典型链路为 `intake → jd → company → report`；未执行的薪资和匹配结果返回 `null`。`router_decisions` 会记录 Supervisor 每次选择及其理由。
+
 ### 候选人资料
 
 ```text
@@ -245,6 +260,8 @@ GitHub Actions 会自动执行以上检查并验证 Docker 镜像能够构建。
 
 - 六个节点完整执行
 - Company 和 Salary 并行执行
+- LLM Supervisor 按问题选择节点并跳过无关 Agent
+- Supervisor 最大决策次数与降级保护
 - MCP 搜索失败后的降级报告
 - 无关搜索结果的实体与岗位相关性过滤
 - 本地匹配和薪资工具
@@ -264,6 +281,15 @@ GitHub Actions 会自动执行以上检查并验证 Docker 镜像能够构建。
 
 ```bash
 python -m app.evaluation.runner
+```
+
+运行 LLM V2 的零成本 Mock 基线：
+
+```bash
+python -m app.evaluation.runner \
+  --router llm \
+  --model-backend mock \
+  --output evaluations/results/llm.jsonl
 ```
 
 默认每条用例只运行一轮，并使用 Mock 模型与固定搜索快照，不产生 API 费用。控制台会输出任务成功率、路由 Precision/Recall/F1、完全匹配率、禁止 Agent 违规率、Gold Label 准确率、公司事实来源覆盖率、P50/P95 延迟、输入/输出 Token、模型调用次数及估算费用；逐条结果写入 `evaluations/results/fixed.jsonl`，该运行产物默认不提交 Git。

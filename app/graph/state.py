@@ -12,6 +12,7 @@ from app.schemas.domain import (
     NodeError,
     NodeMetric,
     RouteEvent,
+    RouterDecision,
     SalaryInfo,
     Source,
     UserProfile,
@@ -28,7 +29,7 @@ class JobAnalysisState(TypedDict, total=False):
     user_profile: UserProfile
     target_location: str | None
     currency: str
-    router_mode: Literal["fixed"]
+    router_mode: Literal["fixed", "llm", "hybrid"]
 
     jd_info: JDInfo
     company_info: CompanyInfo
@@ -40,7 +41,9 @@ class JobAnalysisState(TypedDict, total=False):
     errors: Annotated[list[NodeError], operator.add]
     sources: Annotated[list[Source], operator.add]
     metrics: Annotated[list[NodeMetric], operator.add]
+    router_decisions: Annotated[list[RouterDecision], operator.add]
     step_count: Annotated[int, operator.add]
 
+    next_agent: Literal["company", "salary", "match", "report"]
     final_report: str
     status: Literal["running", "completed", "failed"]

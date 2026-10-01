@@ -20,9 +20,9 @@ def make_report_node(deps: GraphDependencies):
         arguments = {
             "question": state["question"],
             "jd_info": state["jd_info"],
-            "company_info": state["company_info"],
-            "salary_info": state["salary_info"],
-            "match_result": state["match_result"],
+            "company_info": state.get("company_info"),
+            "salary_info": state.get("salary_info"),
+            "match_result": state.get("match_result"),
             "user_profile": state["user_profile"],
         }
         with get_usage_metadata_callback() as usage:

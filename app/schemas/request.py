@@ -17,5 +17,5 @@ class AnalyzeRequest(BaseModel):
     question: str = "分析岗位匹配度、公司情况和预计薪资"
     target_location: str | None = None
     currency: str = "CNY"
-    router_mode: Literal["fixed"] = "fixed"
+    router_mode: Literal["fixed", "llm"] = "fixed"
     user_profile: UserProfile | None = None

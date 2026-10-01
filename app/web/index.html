@@ -38,11 +38,11 @@
   <main id="appShell" class="shell hidden">
     <nav class="topbar">
       <div class="brand"><span class="brand-mark"><svg class="icon"><use href="#i-spark"/></svg></span><span>Job Agent</span></div>
-      <div class="top-actions"><div class="top-status"><span class="status-dot">服务已就绪</span><span class="mode"><svg class="icon"><use href="#i-route"/></svg>Fixed Router · V1</span></div><div class="account"><button id="accountButton" class="account-button" type="button" aria-expanded="false"><span id="topAvatar" class="avatar">U</span><span id="topAccountName" class="account-name">用户</span></button><div id="accountMenu" class="account-menu hidden"><button id="profileButton" type="button">用户中心</button><button id="logoutButton" class="danger" type="button">退出登录</button></div></div></div>
+      <div class="top-actions"><div class="top-status"><span class="status-dot">服务已就绪</span><span id="routerBadge" class="mode"><svg class="icon"><use href="#i-route"/></svg>Fixed Router · V1</span></div><div class="account"><button id="accountButton" class="account-button" type="button" aria-expanded="false"><span id="topAvatar" class="avatar">U</span><span id="topAccountName" class="account-name">用户</span></button><div id="accountMenu" class="account-menu hidden"><button id="profileButton" type="button">用户中心</button><button id="logoutButton" class="danger" type="button">退出登录</button></div></div></div>
     </nav>
     <header class="hero">
       <div><div class="eyebrow"><svg class="icon"><use href="#i-spark"/></svg>LangGraph · MCP · Job Intelligence</div><h1>岗位分析工作台</h1><p>整合岗位要求、候选人背景与公开数据，生成可解释的求职决策参考。</p></div>
-      <div class="hero-note">Company、Salary 与 Match 节点并行执行，结果由 Report Agent 统一汇总。</div>
+      <div id="routerDescription" class="hero-note">Company、Salary 与 Match 节点并行执行，结果由 Report Agent 统一汇总。</div>
     </header>
     <div class="layout">
       <section class="card input-card">
@@ -68,7 +68,7 @@
           </div>
           <div class="form-group">
             <div class="group-title"><svg class="icon"><use href="#i-settings"/></svg>运行配置</div>
-            <div class="field"><label for="routerMode">Router 模式</label><div class="router-control"><select id="routerMode"><option value="fixed">Fixed · 固定执行链路（当前可用）</option><option disabled>LLM · 动态决策（V2 待实现）</option><option disabled>Hybrid · 约束式动态路由（V3 待实现）</option></select></div></div>
+            <div class="field"><label for="routerMode">Router 模式</label><div class="router-control"><select id="routerMode"><option value="fixed">Fixed · 固定并行链路（V1）</option><option value="llm">LLM · 动态决策（V2）</option><option disabled>Hybrid · 约束式动态路由（V3 待实现）</option></select></div></div>
           </div>
           <button id="submitButton" class="primary-button" type="submit"><span>开始分析</span><svg class="icon"><use href="#i-arrow"/></svg></button>
         </form>
@@ -109,11 +109,11 @@
           <details><summary>开发者详情 · Agent 执行链路</summary><div class="details-body">
             <div class="flow">
               <div class="flow-row"><div id="flowIntake" class="flow-node"></div><span class="flow-arrow">→</span><div id="flowJd" class="flow-node"></div></div>
-              <div class="flow-arrow">↓</div><div class="parallel-label">parallel fan-out</div>
+              <div class="flow-arrow">↓</div><div id="flowDispatchLabel" class="parallel-label">parallel fan-out</div>
               <div class="parallel"><div id="flowCompany" class="flow-node"></div><div id="flowSalary" class="flow-node"></div><div id="flowMatch" class="flow-node"></div></div>
-              <div class="parallel-label">fan-in · wait for all</div><div class="flow-arrow">↓</div><div id="flowReport" class="flow-node"></div>
+              <div id="flowJoinLabel" class="parallel-label">fan-in · wait for all</div><div class="flow-arrow">↓</div><div id="flowReport" class="flow-node"></div>
             </div>
-            <div id="metrics" class="metrics"></div><div id="technicalMeta" class="technical-meta muted"></div><div id="nodeErrors"></div>
+            <div id="routerDecisions"></div><div id="metrics" class="metrics"></div><div id="technicalMeta" class="technical-meta muted"></div><div id="nodeErrors"></div>
           </div></details>
         </div>
       </section>

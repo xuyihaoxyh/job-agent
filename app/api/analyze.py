@@ -33,7 +33,7 @@ async def analyze(
     user: AuthUser = Depends(get_current_user),
 ) -> AnalyzeResponse:
     request_started_at = perf_counter()
-    graph = request.app.state.graph
+    graph = request.app.state.graphs[payload.router_mode]
     profiles = request.app.state.profiles
     # Thread IDs are server-generated. Accepting a caller-provided ID here would
     # allow a request to target another user's LangGraph checkpoint.
@@ -71,6 +71,7 @@ async def analyze(
 
     return AnalyzeResponse(
         thread_id=thread_id,
+        router_mode=payload.router_mode,
         status=result.get("status", "completed"),
         match_result=result.get("match_result"),
         company_info=result.get("company_info"),
@@ -78,6 +79,7 @@ async def analyze(
         sources=result.get("sources", []),
         route_history=_route_history(result),
         metrics=result.get("metrics", []),
+        router_decisions=result.get("router_decisions", []),
         step_count=result.get("step_count", 0),
         elapsed_ms=max(0, round((perf_counter() - request_started_at) * 1000)),
         final_report=result.get("final_report"),
@@ -98,6 +100,9 @@ async def get_thread(
     snapshot = await graph.aget_state(config)
     if not snapshot.values:
         raise HTTPException(status_code=404, detail="Thread not found")
+    mode = snapshot.values.get("router_mode", "fixed")
+    graph = request.app.state.graphs.get(mode, graph)
+    snapshot = await graph.aget_state(config)
     return ThreadStateResponse(
         thread_id=thread_id,
         status=snapshot.values.get("status", "unknown"),

@@ -83,8 +83,30 @@ def test_analyze_and_restore_thread(tmp_path):
         assert history.json()["items"][0]["company_name"] == "示例科技"
         assert history.json()["items"][0]["match_score"] == body["match_result"]["score"]
 
+        llm_payload = {
+            **payload,
+            "question": "这家公司主营业务和规模如何？",
+            "router_mode": "llm",
+        }
+        llm_response = client.post("/api/v1/analyze", json=llm_payload)
+        assert llm_response.status_code == 200, llm_response.text
+        llm_body = llm_response.json()
+        assert llm_body["router_mode"] == "llm"
+        assert llm_body["route_history"] == ["intake", "jd", "company", "report"]
+        assert llm_body["salary_info"] is None
+        assert llm_body["match_result"] is None
+        assert [item["next_agent"] for item in llm_body["router_decisions"]] == [
+            "company",
+            "report",
+        ]
+        assert "supervisor" in {item["node"] for item in llm_body["metrics"]}
+        restored_llm = client.get(f"/api/v1/threads/{llm_body['thread_id']}")
+        assert restored_llm.status_code == 200
+        assert restored_llm.json()["values"]["router_mode"] == "llm"
+        assert len(restored_llm.json()["values"]["router_decisions"]) == 2
+
         # The profile was persisted separately, so it can be omitted next time.
         payload.pop("user_profile")
         second = client.post("/api/v1/analyze", json=payload)
         assert second.status_code == 200, second.text
-        assert len(client.get("/api/v1/analyses").json()["items"]) == 2
+        assert len(client.get("/api/v1/analyses").json()["items"]) == 3

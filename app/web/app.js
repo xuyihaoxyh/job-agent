@@ -96,16 +96,18 @@ function renderSalarySearchTrace(attempts) {
 
 function renderSources(sources) { const container=$('#sources');clear(container);$('#sourceSummary').textContent=`信息来源 · ${sources.length} 条`;if(!sources.length){addText(container,'small','当前未获取外部来源。');return;}sources.forEach((item,index)=>{const link=addText(container,'a',`${index+1}. ${item.title}`,'source');link.href=item.url;link.target='_blank';link.rel='noopener noreferrer';addText(link,'small',item.url);}); }
 
-function renderFlow(metrics,elapsed,threadId,errors) {
+function renderFlow(metrics,elapsed,threadId,errors,routerMode='fixed',routerDecisions=[]) {
   const byNode=Object.fromEntries(metrics.map(item=>[item.node,item]));const labels={intake:'Intake',jd:'Jd',company:'Company',salary:'Salary',match:'Match',report:'Report'};
   Object.entries(labels).forEach(([key,id])=>{const node=$(`#flow${id}`);clear(node);addText(node,'strong',key==='jd'?'JD':id);addText(node,'small',byNode[key]?`${byNode[key].latency_ms} ms`:'未执行');});
-  const list=$('#metrics');clear(list);metrics.forEach(item=>{const row=addText(list,'div','', 'metric');addText(row,'span',item.node);addText(row,'strong',`${item.latency_ms} ms`);});const work=metrics.reduce((sum,item)=>sum+item.latency_ms,0),elapsedText=elapsed==null?'历史记录':`实际端到端耗时 ${elapsed} ms`;$('#technicalMeta').textContent=`${elapsedText} · 节点工作量合计 ${work} ms（并行节点不能作为用户等待时间相加） · Thread ${threadId}`;const errorsBox=$('#nodeErrors');clear(errorsBox);(errors||[]).forEach(item=>addText(errorsBox,'div',`${item.node}: ${item.message}`,'error'));
+  const dynamic=routerMode==='llm';$('#flowDispatchLabel').textContent=dynamic?'LLM Supervisor · dynamic dispatch':'parallel fan-out';$('#flowJoinLabel').textContent=dynamic?'return to supervisor until complete':'fan-in · wait for all';const decisions=$('#routerDecisions');clear(decisions);if(dynamic&&routerDecisions.length){const details=addText(decisions,'details','', 'search-trace');addText(details,'summary',`Supervisor 决策 · ${routerDecisions.length} 次`);const body=addText(details,'div','', 'details-body');routerDecisions.forEach((item,index)=>addText(body,'div',`${index+1}. ${item.next_agent} · ${item.reason}`,'notice'));}
+  const list=$('#metrics');clear(list);metrics.forEach(item=>{const row=addText(list,'div','', 'metric');addText(row,'span',item.node);addText(row,'strong',`${item.latency_ms} ms`);});const work=metrics.reduce((sum,item)=>sum+item.latency_ms,0),elapsedText=elapsed==null?'历史记录':`实际端到端耗时 ${elapsed} ms`;$('#technicalMeta').textContent=`${elapsedText} · 节点工作量合计 ${work} ms${dynamic?'（包含 Supervisor）':'（并行节点不能作为用户等待时间相加）'} · Thread ${threadId}`;const errorsBox=$('#nodeErrors');clear(errorsBox);(errors||[]).forEach(item=>addText(errorsBox,'div',`${item.node}: ${item.message}`,'error'));
 }
 
 function renderAnalysis(body) {
   const elapsed=body.elapsed_ms;
+  const routerMode=body.router_mode||'fixed';$('#routerMode').value=routerMode;$('#routerBadge').lastChild.textContent=routerMode==='llm'?'LLM Router · V2':'Fixed Router · V1';$('#routerDescription').textContent=routerMode==='llm'?'Supervisor 根据分析目标逐步选择必要 Agent，并记录每次决策依据。':'Company、Salary 与 Match 节点并行执行，结果由 Report Agent 统一汇总。';
   $('#elapsed').textContent=elapsed==null?'已恢复':elapsed>=1000?`${(elapsed/1000).toFixed(1)} s`:`${elapsed} ms`;
-  renderMatch(body.match_result);renderCompany(body.company_info);renderSalary(body.salary_info);renderMarkdown(body.final_report);renderSources(body.sources||[]);renderFlow(body.metrics||[],elapsed,body.thread_id,body.errors||[]);
+  renderMatch(body.match_result);renderCompany(body.company_info);renderSalary(body.salary_info);renderMarkdown(body.final_report);renderSources(body.sources||[]);renderFlow(body.metrics||[],elapsed,body.thread_id,body.errors||[],routerMode,body.router_decisions||[]);
   placeholder.classList.add('hidden');loading.classList.add('hidden');errorBox.classList.add('hidden');result.classList.remove('hidden');
 }
 
@@ -118,4 +120,5 @@ form.addEventListener('submit',async event=>{
   try{const body=await api('/api/v1/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});applyProfile(profile);renderAnalysis(body);}
   catch(error){if(error.status===401){showAuth();authError('登录已过期，请重新登录');}else{errorBox.textContent=error.message||String(error);errorBox.classList.remove('hidden');}}finally{clearInterval(loadingTimer);loading.classList.add('hidden');button.disabled=false;buttonLabel.textContent='开始分析';}
 });
+$('#routerMode').addEventListener('change',()=>{const dynamic=value('routerMode')==='llm';$('#routerBadge').lastChild.textContent=dynamic?'LLM Router · V2':'Fixed Router · V1';$('#routerDescription').textContent=dynamic?'Supervisor 根据分析目标逐步选择必要 Agent，并记录每次决策依据。':'Company、Salary 与 Match 节点并行执行，结果由 Report Agent 统一汇总。';});
 api('/api/v1/auth/me').then(body=>showApp(body.user)).catch(()=>showAuth());
