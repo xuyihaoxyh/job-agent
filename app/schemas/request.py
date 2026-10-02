@@ -15,7 +15,10 @@ class AnalyzeRequest(BaseModel):
     job_title: str | None = None
     employment_type: Literal["social", "campus", "intern"] = "social"
     question: str = "分析岗位匹配度、公司情况和预计薪资"
+    analysis_targets: list[Literal["company", "salary", "match"]] = Field(
+        default_factory=lambda: ["company", "salary", "match"], min_length=1
+    )
     target_location: str | None = None
     currency: str = "CNY"
-    router_mode: Literal["fixed", "llm"] = "fixed"
+    router_mode: Literal["fixed", "llm", "hybrid"] = "fixed"
     user_profile: UserProfile | None = None

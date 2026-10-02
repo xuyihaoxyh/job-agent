@@ -79,13 +79,9 @@ class MCPSearchGateway(SearchGateway):
                 # credential at runtime instead of storing it in servers.json.
                 tavily_api_key = os.getenv("TAVILY_API_KEY")
                 if tavily_api_key:
-                    server.setdefault("env", {}).setdefault(
-                        "TAVILY_API_KEY", tavily_api_key
-                    )
+                    server.setdefault("env", {}).setdefault("TAVILY_API_KEY", tavily_api_key)
             client = MultiServerMCPClient(config)
-            tools = await asyncio.wait_for(
-                client.get_tools(), timeout=self._timeout_seconds
-            )
+            tools = await asyncio.wait_for(client.get_tools(), timeout=self._timeout_seconds)
             for tool in tools:
                 if tool.name == self._tool_name or tool.name.endswith(self._tool_name):
                     self._tool = tool

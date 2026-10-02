@@ -115,9 +115,7 @@ def _result_matches_role(result: SearchResult, role_name: str) -> bool:
     return bool(terms) and any(term in text for term in terms)
 
 
-def focus_salary_result_on_role(
-    result: SearchResult, *, role_name: str
-) -> SearchResult | None:
+def focus_salary_result_on_role(result: SearchResult, *, role_name: str) -> SearchResult | None:
     """Keep salary ranges closest to the most specific role anchors.
 
     Search snippets often contain a matching job followed by company-wide or
@@ -163,9 +161,7 @@ def focus_salary_result_on_role(
         for item in ranked
         if min(abs(item[2] - anchor) for anchor in anchors) <= best_distance + 18
     ]
-    focused_ranges = " ".join(
-        f"{low / 1000:g}K-{high / 1000:g}K" for low, high, _, _ in selected
-    )
+    focused_ranges = " ".join(f"{low / 1000:g}K-{high / 1000:g}K" for low, high, _, _ in selected)
     return SearchResult(title=role_name, url=result.url, snippet=focused_ranges)
 
 

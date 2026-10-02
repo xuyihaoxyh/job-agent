@@ -7,6 +7,7 @@ from langchain_openai import ChatOpenAI
 
 from app.config import Settings
 from app.schemas.domain import (
+    AnalysisPlan,
     CompanyInfo,
     JDInfo,
     MatchResult,
@@ -36,6 +37,31 @@ KNOWN_SKILLS = [
     "LangChain",
     "LangGraph",
 ]
+
+
+def _required_agents_for_question(question: str) -> list[str]:
+    if "综合" in question:
+        return ["company", "salary", "match"]
+    requested: list[str] = []
+    keyword_groups = {
+        "company": ("公司", "企业", "业务", "规模", "性质", "可靠"),
+        "salary": ("薪资", "工资", "待遇", "月薪", "薪酬"),
+        "match": (
+            "匹配",
+            "适合",
+            "适配",
+            "技能",
+            "经验",
+            "学历",
+            "投递",
+            "差距",
+            "缺口",
+        ),
+    }
+    for agent, keywords in keyword_groups.items():
+        if any(keyword in question for keyword in keywords):
+            requested.append(agent)
+    return requested or ["company", "salary", "match"]
 
 
 class DeterministicAnalysisModel:
@@ -78,32 +104,7 @@ class DeterministicAnalysisModel:
         completed_agents: list[str],
     ) -> RouterDecision:
         """Offline router with the same contract as the LLM supervisor."""
-        requested: list[str] = []
-        if "综合" in question:
-            requested = ["company", "salary", "match"]
-        keyword_groups = {
-            "company": ("公司", "企业", "业务", "规模", "性质", "可靠"),
-            "salary": ("薪资", "工资", "待遇", "月薪", "薪酬"),
-            "match": (
-                "匹配",
-                "适合",
-                "适配",
-                "技能",
-                "经验",
-                "学历",
-                "投递",
-                "差距",
-                "缺口",
-            ),
-        }
-        for agent, keywords in keyword_groups.items():
-            if agent not in requested and any(
-                keyword in question for keyword in keywords
-            ):
-                requested.append(agent)
-        if not requested:
-            requested = ["company", "salary", "match"]
-
+        requested = _required_agents_for_question(question)
         completed = set(completed_agents)
         for agent in requested:
             if agent not in completed:
@@ -112,6 +113,12 @@ class DeterministicAnalysisModel:
                     reason=f"用户问题需要 {agent} 结果，且该节点尚未执行",
                 )
         return RouterDecision(next_agent="report", reason="用户需要的信息已经齐全")
+
+    async def create_analysis_plan(self, *, question: str) -> AnalysisPlan:
+        return AnalysisPlan(
+            required_agents=_required_agents_for_question(question),
+            reason="根据用户问题选择完成目标所需的最少业务节点",
+        )
 
     async def write_report(
         self,
@@ -154,18 +161,13 @@ class DeterministicAnalysisModel:
                 ("规模", company_info.employee_scale),
                 ("岗位关联", company_info.role_relevance),
             )
-            lines.extend(
-                f"- {label}：{value}"
-                for label, value in optional_company_lines
-                if value
-            )
+            lines.extend(f"- {label}：{value}" for label, value in optional_company_lines if value)
             lines.extend(f"- 注意：{item}" for item in company_info.caveats)
         if salary_info:
             salary_range = (
                 f"{salary_info.minimum:,}–{salary_info.maximum:,} "
                 f"{salary_info.currency}/{salary_info.period}"
-                if salary_info.minimum is not None
-                and salary_info.maximum is not None
+                if salary_info.minimum is not None and salary_info.maximum is not None
                 else "未找到足够可靠的数据"
             )
             salary_scope = {
@@ -230,6 +232,7 @@ class OpenAIAnalysisModel:
         )
         self._jd_model = self._model.with_structured_output(JDInfo)
         self._router_model = self._model.with_structured_output(RouterDecision)
+        self._planner_model = self._model.with_structured_output(AnalysisPlan)
 
     async def extract_jd(self, jd_text: str) -> JDInfo:
         result = await self._jd_model.ainvoke(
@@ -270,7 +273,36 @@ class OpenAIAnalysisModel:
                 ),
             ]
         )
-        return RouterDecision.model_validate(result)
+        validated = RouterDecision.model_validate(result)
+        # Only next_agent and reason come from the model. Hybrid policy metadata
+        # is always computed by trusted application code.
+        return RouterDecision(
+            next_agent=validated.next_agent,
+            reason=validated.reason,
+        )
+
+    async def create_analysis_plan(self, *, question: str) -> AnalysisPlan:
+        result = await self._planner_model.ainvoke(
+            [
+                (
+                    "system",
+                    "你是岗位分析工作流规划器。根据用户问题选择完成目标所需的最少业务节点。"
+                    "company查询公司公开信息；salary查询岗位薪资；"
+                    "match计算候选人与JD的匹配度。"
+                    "只选择用户明确需要的节点，不要为了完整而增加无关节点。"
+                    "报告由工作流自动生成，不属于计划节点。",
+                ),
+                (
+                    "human",
+                    json.dumps({"question": question}, ensure_ascii=False),
+                ),
+            ]
+        )
+        validated = AnalysisPlan.model_validate(result)
+        return AnalysisPlan(
+            required_agents=validated.required_agents,
+            reason=validated.reason,
+        )
 
     async def write_report(
         self,
@@ -286,7 +318,9 @@ class OpenAIAnalysisModel:
             "question": question,
             "jd_info": jd_info.model_dump(mode="json"),
             "company_info": (
-                company_info.model_dump(mode="json") if company_info else None
+                company_info.model_dump(mode="json", exclude={"search_attempts"})
+                if company_info
+                else None
             ),
             # Raw search attempts are diagnostic evidence for the UI. They may
             # contain rejected results and must never be summarized as facts.
@@ -295,9 +329,7 @@ class OpenAIAnalysisModel:
                 if salary_info
                 else None
             ),
-            "match_result": (
-                match_result.model_dump(mode="json") if match_result else None
-            ),
+            "match_result": (match_result.model_dump(mode="json") if match_result else None),
             "user_profile": user_profile.model_dump(mode="json"),
         }
         response = await self._model.ainvoke(

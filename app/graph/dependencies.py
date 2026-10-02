@@ -10,4 +10,3 @@ class GraphDependencies:
     model: AnalysisModel
     search: SearchGateway
     profiles: UserProfileReader
-

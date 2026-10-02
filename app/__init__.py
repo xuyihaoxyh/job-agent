@@ -1,2 +1,1 @@
 """Job analysis agent application."""
-

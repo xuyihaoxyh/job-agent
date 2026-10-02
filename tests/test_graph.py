@@ -8,7 +8,7 @@ import pytest
 from app.graph.builder import build_graph
 from app.graph.dependencies import GraphDependencies
 from app.mcp.client import StaticSearchGateway
-from app.schemas.domain import RouterDecision, SearchResult, UserProfile
+from app.schemas.domain import AnalysisPlan, RouterDecision, SearchResult, UserProfile
 from app.services.model import DeterministicAnalysisModel
 
 
@@ -147,6 +147,73 @@ async def test_llm_router_stops_repeated_decisions(profile, search_results):
 
 
 @pytest.mark.asyncio
+async def test_hybrid_planner_executes_selected_agents_in_parallel(profile, search_results):
+    class SelectivePlanner(DeterministicAnalysisModel):
+        async def create_analysis_plan(self, **kwargs):
+            return AnalysisPlan(
+                required_agents=["company", "salary"],
+                reason="user requested company and salary",
+            )
+
+    graph = build_graph(
+        GraphDependencies(
+            model=SelectivePlanner(),
+            search=SlowSearch(search_results),
+            profiles=InMemoryProfiles(profile),
+        ),
+        router_mode="hybrid",
+    )
+    payload = graph_input(profile)
+    payload.update(
+        {
+            "question": "分析公司和薪资",
+            "router_mode": "hybrid",
+        }
+    )
+
+    started = perf_counter()
+    result = await graph.ainvoke(payload)
+    elapsed = perf_counter() - started
+    route = [event.node for event in result["route_events"]]
+
+    assert route[:2] == ["intake", "jd"]
+    assert set(route[2:-1]) == {"company", "salary"}
+    assert route[-1] == "report"
+    assert route.count("report") == 1
+    assert "match_result" not in result
+    assert result["analysis_plan"].final_agents == ["company", "salary"]
+    assert result["router_decisions"] == []
+    assert sum(metric.node == "planner" for metric in result["metrics"]) == 1
+    assert elapsed < 0.19
+
+
+@pytest.mark.asyncio
+async def test_hybrid_planner_failure_falls_back_to_full_analysis(profile, search_results):
+    class FailingPlanner(DeterministicAnalysisModel):
+        async def create_analysis_plan(self, **kwargs):
+            raise RuntimeError("planner unavailable")
+
+    graph = build_graph(
+        GraphDependencies(
+            model=FailingPlanner(),
+            search=StaticSearchGateway(search_results),
+            profiles=InMemoryProfiles(profile),
+        ),
+        router_mode="hybrid",
+    )
+    payload = graph_input(profile)
+    payload["router_mode"] = "hybrid"
+
+    result = await graph.ainvoke(payload)
+    route = [event.node for event in result["route_events"]]
+
+    assert set(route[2:-1]) == {"company", "salary", "match"}
+    assert result["analysis_plan"].overridden is True
+    assert result["analysis_plan"].proposed_agents == []
+    assert any(error.node == "planner" for error in result["errors"])
+
+
+@pytest.mark.asyncio
 async def test_search_branches_run_in_parallel(profile, search_results):
     graph = build_graph(
         GraphDependencies(
@@ -207,9 +274,7 @@ async def test_model_failures_use_deterministic_fallback(profile, search_results
     assert result["jd_info"].required_skills
     assert result["final_report"].startswith("# 岗位分析报告")
     assert {error.node for error in result["errors"]} >= {"jd", "report"}
-    degraded = {
-        event.node for event in result["route_events"] if event.status == "degraded"
-    }
+    degraded = {event.node for event in result["route_events"] if event.status == "degraded"}
     assert degraded >= {"jd", "report"}
 
 

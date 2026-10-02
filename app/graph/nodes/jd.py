@@ -26,9 +26,7 @@ def make_jd_node(deps: GraphDependencies):
                 degraded = True
         if state.get("job_title"):
             jd_info = jd_info.model_copy(update={"role_name": state["job_title"]})
-        node_result = completed(
-            "jd", started_at, **token_usage(usage), model_calls=1
-        )
+        node_result = completed("jd", started_at, **token_usage(usage), model_calls=1)
         if degraded:
             node_result["route_events"] = [RouteEvent(node="jd", status="degraded")]
             node_result["errors"] = [

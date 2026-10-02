@@ -22,9 +22,7 @@ def _unique(values: list[str]) -> list[str]:
 def route_scores(expected: list[str], actual: list[str]) -> tuple[float, float]:
     expected_counts = Counter(expected)
     actual_counts = Counter(actual)
-    common = sum(
-        min(count, actual_counts[node]) for node, count in expected_counts.items()
-    )
+    common = sum(min(count, actual_counts[node]) for node, count in expected_counts.items())
     precision = common / len(actual) if actual else 0.0
     recall = common / len(expected) if expected else 1.0
     return precision, recall
@@ -87,9 +85,7 @@ def _grounded_claim_rate(result: Mapping[str, Any]) -> float | None:
     if not evidence:
         return None
     sources = _value_at_path(company, "sources") or []
-    valid_ids = {
-        _value_at_path(source, "id") for source in sources if _value_at_path(source, "id")
-    }
+    valid_ids = {_value_at_path(source, "id") for source in sources if _value_at_path(source, "id")}
     grounded = 0
     for fact in evidence:
         source_ids = set(_value_at_path(fact, "source_ids") or [])
@@ -107,7 +103,9 @@ def _percentile(values: list[int], percentile: float) -> float:
 def _has_sources(value: Any) -> bool:
     if value is None:
         return False
-    sources = value.get("sources", []) if isinstance(value, Mapping) else getattr(value, "sources", [])
+    sources = (
+        value.get("sources", []) if isinstance(value, Mapping) else getattr(value, "sources", [])
+    )
     return bool(sources)
 
 
@@ -132,23 +130,18 @@ def build_record(
     input_tokens = sum(metric.input_tokens for metric in metrics)
     output_tokens = sum(metric.output_tokens for metric in metrics)
     estimated_cost_usd = (
-        input_tokens * input_price_per_million
-        + output_tokens * output_price_per_million
+        input_tokens * input_price_per_million + output_tokens * output_price_per_million
     ) / 1_000_000
     missing_outputs = [name for name in case.required_outputs if not result.get(name)]
     source_count = len(result.get("sources", []))
     missing_source_outputs = [
-        name
-        for name in case.required_source_outputs
-        if not _has_sources(result.get(name))
+        name for name in case.required_source_outputs if not _has_sources(result.get(name))
     ]
-    repeated_agents = sorted(
-        node for node, count in Counter(actual_route).items() if count > 1
-    )
+    repeated_agents = sorted(node for node, count in Counter(actual_route).items() if count > 1)
     forbidden_agents_hit = sorted(set(actual_route) & set(case.forbidden_agents))
-    assertion_results = [
-        evaluate_assertion(result, assertion) for assertion in case.assertions
-    ]
+    assertion_results = [evaluate_assertion(result, assertion) for assertion in case.assertions]
+    router_decisions = result.get("router_decisions", [])
+    plan_overridden = bool(_value_at_path(result.get("analysis_plan"), "overridden"))
     assertion_accuracy = (
         sum(item.passed for item in assertion_results) / len(assertion_results)
         if assertion_results
@@ -186,7 +179,9 @@ def build_record(
         repeated_agents=repeated_agents,
         forbidden_agents_hit=forbidden_agents_hit,
         assertion_results=assertion_results,
-        assertion_accuracy=(round(assertion_accuracy, 4) if assertion_accuracy is not None else None),
+        assertion_accuracy=(
+            round(assertion_accuracy, 4) if assertion_accuracy is not None else None
+        ),
         grounded_claim_rate=_grounded_claim_rate(result),
         source_count=source_count,
         error_count=len(result.get("errors", [])),
@@ -195,6 +190,8 @@ def build_record(
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         model_calls=sum(metric.model_calls for metric in metrics),
+        router_decision_count=len(router_decisions),
+        plan_overridden=plan_overridden,
         estimated_cost_usd=round(estimated_cost_usd, 8),
         node_metrics=metrics,
     )
@@ -205,17 +202,14 @@ def summarize(records: list[EvaluationRecord]) -> EvaluationSummary:
         raise ValueError("at least one evaluation record is required")
     count = len(records)
     assertion_records = [
-        record.assertion_accuracy
-        for record in records
-        if record.assertion_accuracy is not None
+        record.assertion_accuracy for record in records if record.assertion_accuracy is not None
     ]
     grounding_records = [
-        record.grounded_claim_rate
-        for record in records
-        if record.grounded_claim_rate is not None
+        record.grounded_claim_rate for record in records if record.grounded_claim_rate is not None
     ]
     latencies = [record.total_latency_ms for record in records]
     forbidden_records = [record for record in records if record.forbidden_agents]
+    total_router_decisions = sum(record.router_decision_count for record in records)
     return EvaluationSummary(
         router_mode=records[0].router_mode,
         cases=count,
@@ -244,7 +238,7 @@ def summarize(records: list[EvaluationRecord]) -> EvaluationSummary:
         total_input_tokens=sum(record.input_tokens for record in records),
         total_output_tokens=sum(record.output_tokens for record in records),
         total_model_calls=sum(record.model_calls for record in records),
-        total_estimated_cost_usd=round(
-            sum(record.estimated_cost_usd for record in records), 8
-        ),
+        total_router_decisions=total_router_decisions,
+        plan_override_rate=sum(record.plan_overridden for record in records) / count,
+        total_estimated_cost_usd=round(sum(record.estimated_cost_usd for record in records), 8),
     )

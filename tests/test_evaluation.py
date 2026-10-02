@@ -83,6 +83,13 @@ def test_build_record_and_summary():
         ],
         "elapsed_ms": 14,
         "errors": [],
+        "analysis_plan": {
+            "proposed_agents": [],
+            "final_agents": ["company", "salary", "match"],
+            "reason": "test",
+            "overridden": True,
+            "policy_reason": "fallback",
+        },
     }
 
     record = build_record(
@@ -106,6 +113,8 @@ def test_build_record_and_summary():
     assert record.input_tokens == 1000
     assert record.output_tokens == 250
     assert record.model_calls == 1
+    assert record.router_decision_count == 0
+    assert record.plan_overridden is True
     assert record.estimated_cost_usd == pytest.approx(0.0008)
     assert summary.task_success_rate == 1.0
     assert summary.forbidden_agent_violation_rate == 1.0
@@ -116,6 +125,8 @@ def test_build_record_and_summary():
     assert summary.total_input_tokens == 1000
     assert summary.total_output_tokens == 250
     assert summary.total_model_calls == 1
+    assert summary.total_router_decisions == 0
+    assert summary.plan_override_rate == 1.0
     assert summary.total_estimated_cost_usd == pytest.approx(0.0008)
 
 
@@ -197,9 +208,7 @@ def test_required_sources_must_belong_to_the_requested_output():
             True,
         ),
         (
-            EvaluationAssertion(
-                path="report", operator="not_contains", expected="上市公司"
-            ),
+            EvaluationAssertion(path="report", operator="not_contains", expected="上市公司"),
             True,
         ),
         (

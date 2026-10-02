@@ -11,6 +11,7 @@ from app.schemas.domain import (
     MatchResult,
     NodeError,
     NodeMetric,
+    PlanDecision,
     RouteEvent,
     RouterDecision,
     SalaryInfo,
@@ -30,6 +31,7 @@ class JobAnalysisState(TypedDict, total=False):
     target_location: str | None
     currency: str
     router_mode: Literal["fixed", "llm", "hybrid"]
+    analysis_targets: list[Literal["company", "salary", "match"]]
 
     jd_info: JDInfo
     company_info: CompanyInfo
@@ -45,5 +47,7 @@ class JobAnalysisState(TypedDict, total=False):
     step_count: Annotated[int, operator.add]
 
     next_agent: Literal["company", "salary", "match", "report"]
+    analysis_plan: PlanDecision
+    planned_agents: list[Literal["company", "salary", "match"]]
     final_report: str
     status: Literal["running", "completed", "failed"]

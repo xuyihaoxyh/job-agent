@@ -28,17 +28,23 @@ WEB_DIR = Path(__file__).resolve().parent / "web"
 CHECKPOINT_TYPES = [
     ("app.schemas.domain", name)
     for name in (
+        "AnalysisPlan",
         "CompanyFact",
         "CompanyInfo",
+        "CompanySearchAttempt",
+        "CostSummary",
         "JDInfo",
         "MatchResult",
         "MatchScoreDimension",
         "NodeError",
         "NodeMetric",
+        "NodeCost",
+        "PlanDecision",
         "RouteEvent",
         "RouterDecision",
         "SalaryInfo",
         "SalarySearchAttempt",
+        "AnalysisSectionStatus",
         "Source",
         "UserProfile",
     )
@@ -73,9 +79,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         elif active_settings.search_backend == "static":
             search = StaticSearchGateway()
         else:
-            raise ValueError(
-                f"Unsupported SEARCH_BACKEND: {active_settings.search_backend}"
-            )
+            raise ValueError(f"Unsupported SEARCH_BACKEND: {active_settings.search_backend}")
 
         serializer = JsonPlusSerializer(allowed_msgpack_modules=CHECKPOINT_TYPES)
         async with aiosqlite.connect(active_settings.checkpoint_db) as checkpoint_connection:
@@ -96,7 +100,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     router_mode=mode,
                     checkpointer=checkpointer,
                 )
-                for mode in ("fixed", "llm")
+                for mode in ("fixed", "llm", "hybrid")
             }
             # Keep the fixed graph alias for compatibility with existing callers.
             application.state.graph = application.state.graphs["fixed"]

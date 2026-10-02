@@ -8,10 +8,20 @@ from app.graph.nodes.company import make_company_node
 from app.graph.nodes.intake import make_intake_node
 from app.graph.nodes.jd import make_jd_node
 from app.graph.nodes.match import match_candidate
+from app.graph.nodes.planner import make_planner_node, route_planned_agents
 from app.graph.nodes.report import make_report_node
 from app.graph.nodes.salary import make_salary_node
 from app.graph.nodes.supervisor import make_supervisor_node, route_from_supervisor
 from app.graph.state import JobAnalysisState
+
+
+def route_fixed_agents(state: JobAnalysisState) -> list[str]:
+    """Deterministically dispatch the user-selected V1 business nodes."""
+    return list(
+        dict.fromkeys(
+            state.get("analysis_targets") or ["company", "salary", "match"]
+        )
+    )
 
 
 def build_graph(
@@ -20,7 +30,7 @@ def build_graph(
     router_mode: str = "fixed",
     checkpointer: BaseCheckpointSaver | None = None,
 ):
-    if router_mode not in {"fixed", "llm"}:
+    if router_mode not in {"fixed", "llm", "hybrid"}:
         raise ValueError(f"Unsupported router mode: {router_mode}")
     builder = StateGraph(JobAnalysisState)
     builder.add_node("intake", make_intake_node(dependencies))
@@ -34,16 +44,18 @@ def build_graph(
     builder.add_edge("intake", "jd")
 
     if router_mode == "fixed":
-        # Fixed fan-out: these nodes are independent once JD extraction finishes.
-        builder.add_edge("jd", "company")
-        builder.add_edge("jd", "salary")
-        builder.add_edge("jd", "match")
+        # Fixed fan-out: code dispatches exactly the user-selected independent nodes.
+        builder.add_conditional_edges(
+            "jd",
+            route_fixed_agents,
+            {"company": "company", "salary": "salary", "match": "match"},
+        )
 
         # Fan-in: report runs only after all three incoming branches finish.
         builder.add_edge("company", "report")
         builder.add_edge("salary", "report")
         builder.add_edge("match", "report")
-    else:
+    elif router_mode == "llm":
         builder.add_node("supervisor", make_supervisor_node(dependencies))
         builder.add_edge("jd", "supervisor")
         builder.add_conditional_edges(
@@ -59,6 +71,21 @@ def build_graph(
         builder.add_edge("company", "supervisor")
         builder.add_edge("salary", "supervisor")
         builder.add_edge("match", "supervisor")
+    else:
+        builder.add_node("planner", make_planner_node(dependencies))
+        builder.add_edge("jd", "planner")
+        builder.add_conditional_edges(
+            "planner",
+            route_planned_agents,
+            {
+                "company": "company",
+                "salary": "salary",
+                "match": "match",
+            },
+        )
+        builder.add_edge("company", "report")
+        builder.add_edge("salary", "report")
+        builder.add_edge("match", "report")
     builder.add_edge("report", END)
 
     return builder.compile(checkpointer=checkpointer)

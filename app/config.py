@@ -7,6 +7,11 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
+def _optional_float(name: str) -> float | None:
+    value = os.getenv(name, "").strip()
+    return float(value) if value else None
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     app_name: str = "Job Analysis Agent"
@@ -15,6 +20,8 @@ class Settings:
     openai_api_key: str | None = None
     model_timeout_seconds: float = 60.0
     model_max_retries: int = 2
+    model_input_price_per_1m: float | None = None
+    model_output_price_per_1m: float | None = None
     search_backend: str = "static"
     checkpoint_db: Path = PROJECT_ROOT / "data" / "checkpoints.db"
     app_db: Path = PROJECT_ROOT / "data" / "app.db"
@@ -35,15 +42,15 @@ class Settings:
             openai_api_key=os.getenv("OPENAI_API_KEY"),
             model_timeout_seconds=float(os.getenv("MODEL_TIMEOUT_SECONDS", "60")),
             model_max_retries=int(os.getenv("MODEL_MAX_RETRIES", "2")),
+            model_input_price_per_1m=_optional_float("MODEL_INPUT_PRICE_PER_1M"),
+            model_output_price_per_1m=_optional_float("MODEL_OUTPUT_PRICE_PER_1M"),
             search_backend=os.getenv("SEARCH_BACKEND", "static").lower(),
             checkpoint_db=Path(
                 os.getenv("CHECKPOINT_DB", PROJECT_ROOT / "data" / "checkpoints.db")
             ),
             app_db=Path(os.getenv("APP_DB", PROJECT_ROOT / "data" / "app.db")),
             mcp_config_path=Path(
-                os.getenv(
-                    "MCP_CONFIG_PATH", PROJECT_ROOT / "app" / "mcp" / "servers.json"
-                )
+                os.getenv("MCP_CONFIG_PATH", PROJECT_ROOT / "app" / "mcp" / "servers.json")
             ),
             search_tool_name=os.getenv("MCP_SEARCH_TOOL", "web_search"),
             search_timeout_seconds=float(os.getenv("SEARCH_TIMEOUT_SECONDS", "35")),

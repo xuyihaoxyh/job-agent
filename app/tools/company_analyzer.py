@@ -57,18 +57,14 @@ def result_mentions_company(result: SearchResult, company_name: str) -> bool:
     return any(variant in haystack for variant in _company_name_variants(company_name))
 
 
-def filter_company_results(
-    company_name: str, results: list[SearchResult]
-) -> list[SearchResult]:
+def filter_company_results(company_name: str, results: list[SearchResult]) -> list[SearchResult]:
     return [result for result in results if result_mentions_company(result, company_name)]
 
 
 def _grounded_sentences(company_name: str, result: SearchResult) -> list[str]:
     variants = _company_name_variants(company_name)
     sentences = [
-        part.strip()
-        for part in re.split(r"(?<=[。！？!?；;])|\n+", result.snippet)
-        if part.strip()
+        part.strip() for part in re.split(r"(?<=[。！？!?；;])|\n+", result.snippet) if part.strip()
     ]
     grounded: list[str] = []
     previous_was_grounded = False
@@ -179,8 +175,7 @@ def build_company_info(
     # while the analyzer also refuses unrelated results when used directly.
     relevant_results = filter_company_results(company_name, results)
     grounded_results = [
-        (result, " ".join(_grounded_sentences(company_name, result)))
-        for result in relevant_results
+        (result, " ".join(_grounded_sentences(company_name, result))) for result in relevant_results
     ]
     grounded_results = [(result, text) for result, text in grounded_results if text]
     relevant_urls = {result.url for result, _ in grounded_results}
@@ -229,9 +224,7 @@ def build_company_info(
         if any(keyword.casefold() in combined.casefold() for keyword in keywords)
     ][:6]
     headquarters_values = {
-        value
-        for _, text in ranked
-        if (value := _headquarters_from_text(company_name, text))
+        value for _, text in ranked if (value := _headquarters_from_text(company_name, text))
     }
     headquarters = next(iter(headquarters_values)) if len(headquarters_values) == 1 else None
     employee_scale = _first_match(

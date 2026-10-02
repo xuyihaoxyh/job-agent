@@ -68,8 +68,7 @@ def score_match(jd: JDInfo, profile: UserProfile) -> MatchResult:
         elif required_rank is not None and profile_rank < required_rank:
             education_score = 0
             education_gap = (
-                f"学历要求为{'/'.join(jd.education_requirements)}，"
-                f"当前资料为{profile.education}"
+                f"学历要求为{'/'.join(jd.education_requirements)}，当前资料为{profile.education}"
             )
 
     score = max(0, min(100, skill_score + experience_score + education_score))

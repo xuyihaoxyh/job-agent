@@ -12,5 +12,7 @@ async def get_current_user(request: Request) -> AuthUser:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="请先登录")
     user = await request.app.state.auth.user_for_session(token)
     if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="登录已过期，请重新登录")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="登录已过期，请重新登录"
+        )
     return user

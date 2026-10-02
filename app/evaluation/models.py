@@ -95,6 +95,8 @@ class EvaluationRecord(BaseModel):
     input_tokens: int = Field(default=0, ge=0)
     output_tokens: int = Field(default=0, ge=0)
     model_calls: int = Field(default=0, ge=0)
+    router_decision_count: int = Field(default=0, ge=0)
+    plan_overridden: bool = False
     estimated_cost_usd: float = Field(default=0, ge=0)
     node_metrics: list[NodeMetric] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=utc_now)
@@ -119,4 +121,6 @@ class EvaluationSummary(BaseModel):
     total_input_tokens: int = Field(ge=0)
     total_output_tokens: int = Field(ge=0)
     total_model_calls: int = Field(ge=0)
+    total_router_decisions: int = Field(ge=0)
+    plan_override_rate: float = Field(ge=0, le=1)
     total_estimated_cost_usd: float = Field(ge=0)

@@ -40,9 +40,7 @@ def test_register_session_profile_update_and_logout(tmp_path):
         assert current.status_code == 200
         assert current.json()["user"]["username"] == "alice"
 
-        updated = client.patch(
-            "/api/v1/auth/me", json={"display_name": "Alice Chen"}
-        )
+        updated = client.patch("/api/v1/auth/me", json={"display_name": "Alice Chen"})
         assert updated.status_code == 200
         assert updated.json()["user"]["display_name"] == "Alice Chen"
 
@@ -95,9 +93,7 @@ def test_login_and_analysis_require_authentication(tmp_path):
         )
         client.post("/api/v1/auth/logout")
 
-        bad_login = client.post(
-            "/api/v1/auth/login", json={"login": "bob", "password": "wrong"}
-        )
+        bad_login = client.post("/api/v1/auth/login", json={"login": "bob", "password": "wrong"})
         assert bad_login.status_code == 401
 
         login = client.post(

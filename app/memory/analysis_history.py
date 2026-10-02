@@ -59,9 +59,7 @@ class SQLiteAnalysisHistoryRepository:
             )
             await connection.commit()
 
-    async def list_for_user(
-        self, user_id: str, *, limit: int = 20
-    ) -> list[AnalysisHistoryItem]:
+    async def list_for_user(self, user_id: str, *, limit: int = 20) -> list[AnalysisHistoryItem]:
         async with aiosqlite.connect(self._database_path) as connection:
             await connection.execute("PRAGMA busy_timeout=5000")
             cursor = await connection.execute(

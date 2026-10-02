@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from app.schemas.domain import (
+    AnalysisPlan,
     CompanyInfo,
     JDInfo,
     MatchResult,
@@ -22,6 +23,8 @@ class AnalysisModel(Protocol):
         question: str,
         completed_agents: list[str],
     ) -> RouterDecision: ...
+
+    async def create_analysis_plan(self, *, question: str) -> AnalysisPlan: ...
 
     async def write_report(
         self,

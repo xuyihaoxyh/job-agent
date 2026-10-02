@@ -37,9 +37,7 @@ def make_supervisor_node(deps: GraphDependencies):
                 "metrics": [
                     NodeMetric(
                         node="supervisor",
-                        latency_ms=max(
-                            0, round((perf_counter() - started_at) * 1000)
-                        ),
+                        latency_ms=max(0, round((perf_counter() - started_at) * 1000)),
                     )
                 ],
                 "step_count": 1,

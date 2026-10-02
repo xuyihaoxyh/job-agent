@@ -6,12 +6,12 @@
 
 已完成里程碑 1–4：
 
-1. 显式 `StateGraph`、Fixed Router 和 LLM Supervisor Router
+1. 显式 `StateGraph`、Fixed、LLM Supervisor 和 Hybrid Router
 2. 可切换的离线模型/OpenAI 模型
 3. 一个真实的 stdio 搜索 MCP Server
 4. FastAPI、SQLite Checkpointer、账户登录、长期用户资料和分析历史
 
-Hybrid Router 和 Skills 暂未加入，它们属于后续里程碑。
+Skills 暂未加入，它属于后续里程碑。
 
 ## Web 人工验证
 
@@ -27,9 +27,13 @@ http://localhost:8000/
 http://localhost:8001/
 ```
 
-页面支持注册、登录和右上角用户中心。候选人技能、学历、经验、意向城市、意向岗位和经历摘要按账户独立保存，登录后自动回填，无需每次重新输入。用户中心会列出当前账户的分析历史，点击记录可从 LangGraph checkpoint 恢复完整结果。登录后可以提交 JD、公司和个人资料，并在 Fixed V1 与 LLM V2 之间切换。开发者详情会展示业务节点、Supervisor 决策、耗时、来源与最终报告；Hybrid 选项将在 V3 开放。
+页面支持注册、登录和右上角用户中心。候选人技能、学历、经验、意向城市、意向岗位和经历摘要按账户独立保存，登录后自动回填，无需每次重新输入。用户中心会列出当前账户的分析历史，点击记录可从 LangGraph checkpoint 恢复完整结果。登录后可以提交 JD、公司和个人资料，选择岗位匹配、公司画像和薪资参考中的一个或多个目标，并在 Fixed V1、LLM V2 与 Hybrid V3 之间切换。V1 按明确选择固定分发，V2/V3 按分析目标动态选择必要节点。
+
+分析期间，页面通过 SSE 展示 LangGraph 节点的真实完成事件，不再使用定时文案模拟进度。开发者详情根据实际路由动态绘制执行图，并展示 Supervisor 决策或 Planner 计划、代码校验、耗时、来源与最终报告。
 
 当前结果页还会展示规则评分维度、结构化公司画像、薪资样本数与可信度。开发者详情中的端到端耗时是用户实际等待时间；Company、Salary、Match 的节点耗时属于并行工作量，不能直接相加作为等待时间。
+
+开发者详情还会按节点展示模型输入 Token、输出 Token、调用次数和估算成本。默认 `gpt-4.1-mini` 使用 OpenAI 官方标准文本价格：输入 `$0.40 / 1M tokens`、输出 `$1.60 / 1M tokens`。成本仅为估算，不包含 Prompt Cache 折扣、MCP/Tavily 搜索费用和税费；Mock 模式明确显示为 `$0`。当前价格可参考 [OpenAI GPT-4.1 mini 模型页](https://developers.openai.com/api/docs/models/gpt-4.1-mini)。
 
 ## 架构
 
@@ -68,6 +72,22 @@ flowchart TD
 
 Supervisor 使用结构化输出选择 `company`、`salary`、`match` 或 `report`。最多允许 8 次路由决策，达到上限后强制进入降级报告，避免模型循环。Supervisor 的耗时、Token 和决策理由单独记录，不计入业务路由 Precision。
 
+Hybrid V3 改用一次性 Planner。模型根据问题生成最小 `required_agents` 计划，代码负责去重、空计划降级和允许节点校验；校验后的节点动态并行执行，完成后由图自动进入 Report：
+
+```mermaid
+flowchart TD
+    START --> Intake --> JD --> Planner
+    Planner --> Company
+    Planner --> Salary
+    Planner --> Match
+    Company --> Report
+    Salary --> Report
+    Match --> Report
+    Report --> END
+```
+
+响应中的 `analysis_plan` 同时保存模型的 `proposed_agents`、代码校验后的 `final_agents`、`overridden` 和 `policy_reason`。Planner 只调用一次，也不会负责选择 Report。
+
 ### 搜索证据约束
 
 MCP 搜索结果在进入结构化提取前会先进行相关性校验：
@@ -79,6 +99,8 @@ MCP 搜索结果在进入结构化提取前会先进行相关性校验：
 - 常规社招、校园招聘和实习结果分开过滤，避免不同招聘类型混算。
 - 公司专属薪资没有有效样本时，自动降级为同城市同岗位市场薪资，并明确标记数据范围。
 - 两阶段搜索的原始标题、链接、返回数和采纳数会保留在结果页，但未采纳结果不进入事实来源。
+- 公司检索同样保留原始结果和采纳审计；每个搜索结果都标记来源类型、质量等级、采纳状态与原因。
+- 搜索提供方没有返回发布日期时，页面明确显示“发布时间未知 / 新鲜度未知”，不会伪造时间。
 - 无关结果不会进入最终来源，也不会参与可信度和薪资区间计算。
 - 没有合格证据时返回“无法验证/信息不足”；搜索不到不等于公司不存在。
 - Report 只能汇总经过过滤的结构化字段，无来源时不得补写公司或薪资事实。
@@ -137,7 +159,11 @@ TAVILY_API_KEY=你的TavilyKey
 SEARCH_TIMEOUT_SECONDS=35
 MODEL_TIMEOUT_SECONDS=60
 MODEL_MAX_RETRIES=2
+MODEL_INPUT_PRICE_PER_1M=
+MODEL_OUTPUT_PRICE_PER_1M=
 ```
+
+两个价格配置均为“每 100 万 Token 的美元价格”。留空时会使用项目内已知模型价格；更换为其他模型且项目没有内置价格时，应显式配置，否则页面会显示“无法估算”。
 
 启动时，Company 和 Salary 节点会通过 `langchain-mcp-adapters` 连接
 `app/mcp/servers.json` 中的 stdio Server。Server 的 `web_search` 工具再调用 Tavily。
@@ -196,7 +222,19 @@ curl -b cookies.txt -X POST http://localhost:8001/api/v1/analyze \
 
 响应包含服务端生成的 `thread_id`、匹配结果、公司信息、薪资信息、来源、最终报告和完整路由历史。客户端不能指定 `thread_id`，避免跨用户操作其他检查点。
 
+`section_statuses` 会分别标记 Company、Salary 和 Match 为 `completed`、`not_requested`、`insufficient`、`degraded` 或 `failed`，避免把“没有请求”“证据不足”和“执行失败”混为一谈。
+
+前端使用下面的 SSE 接口执行同一条工作流：
+
+```text
+POST /api/v1/analyze/stream
+```
+
+事件顺序为 `accepted`、若干个 `progress`，最后是完整的 `result`；执行结果仍写入同一套 SQLite checkpoint 和分析历史。原有同步 `POST /api/v1/analyze` 保留给普通 API 调用和自动评估。
+
 将 `router_mode` 改为 `llm` 即可启用 V2。只询问公司时，典型链路为 `intake → jd → company → report`；未执行的薪资和匹配结果返回 `null`。`router_decisions` 会记录 Supervisor 每次选择及其理由。
+
+将 `router_mode` 改为 `hybrid` 即可启用 V3。它会调用一次 LLM 生成业务节点计划，校验后动态并行执行；发生纠正时，响应中的 `analysis_plan.overridden` 为 `true`。
 
 ### 候选人资料
 
@@ -262,6 +300,7 @@ GitHub Actions 会自动执行以上检查并验证 Docker 镜像能够构建。
 - Company 和 Salary 并行执行
 - LLM Supervisor 按问题选择节点并跳过无关 Agent
 - Supervisor 最大决策次数与降级保护
+- Hybrid Planner 一次规划、计划校验和动态并行执行
 - MCP 搜索失败后的降级报告
 - 无关搜索结果的实体与岗位相关性过滤
 - 本地匹配和薪资工具
@@ -292,6 +331,15 @@ python -m app.evaluation.runner \
   --output evaluations/results/llm.jsonl
 ```
 
+运行 Hybrid V3 的零成本 Mock 基线：
+
+```bash
+python -m app.evaluation.runner \
+  --router hybrid \
+  --model-backend mock \
+  --output evaluations/results/hybrid.jsonl
+```
+
 默认每条用例只运行一轮，并使用 Mock 模型与固定搜索快照，不产生 API 费用。控制台会输出任务成功率、路由 Precision/Recall/F1、完全匹配率、禁止 Agent 违规率、Gold Label 准确率、公司事实来源覆盖率、P50/P95 延迟、输入/输出 Token、模型调用次数及估算费用；逐条结果写入 `evaluations/results/fixed.jsonl`，该运行产物默认不提交 Git。
 
 真实模型评估必须显式确认，并可设置预算上限：
@@ -319,3 +367,4 @@ python -m app.evaluation.runner \
 - `forbidden_agent_violation_rate`：执行了用例明确禁止的无关 Agent 的比例。
 - `total_latency_ms`：端到端真实等待时间，不将并行节点耗时相加。
 - `token_usage`：JD 与 Report 模型调用返回的真实 Token 总量。
+- `plan_override_rate`：Hybrid 中 LLM 原始计划被代码校验纠正或降级的比例。

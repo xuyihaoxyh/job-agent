@@ -1,4 +1,5 @@
 from app.schemas.domain import (
+    AnalysisPlan,
     CompanyFact,
     CompanyInfo,
     JDInfo,
@@ -6,6 +7,7 @@ from app.schemas.domain import (
     MatchScoreDimension,
     NodeError,
     NodeMetric,
+    PlanDecision,
     RouteEvent,
     RouterDecision,
     SalaryInfo,
@@ -16,6 +18,7 @@ from app.schemas.domain import (
 )
 
 __all__ = [
+    "AnalysisPlan",
     "CompanyInfo",
     "CompanyFact",
     "JDInfo",
@@ -23,6 +26,7 @@ __all__ = [
     "MatchScoreDimension",
     "NodeError",
     "NodeMetric",
+    "PlanDecision",
     "RouteEvent",
     "RouterDecision",
     "SalaryInfo",

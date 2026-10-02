@@ -30,10 +30,7 @@ def resolve_salary_search_role(
     else:
         lowered = jd_text.casefold()
         has_ads = any(term in lowered for term in ("广告投放", "广告素材", "rta", "roas"))
-        has_ai = any(
-            term in lowered
-            for term in ("ai", "agent", "rag", "llm", "大模型", "多模态")
-        )
+        has_ai = any(term in lowered for term in ("ai", "agent", "rag", "llm", "大模型", "多模态"))
         has_backend = any(
             term in lowered
             for term in (

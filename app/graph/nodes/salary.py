@@ -22,6 +22,7 @@ from app.tools.salary_calculator import (
     focus_salary_result_on_role,
     result_is_company_salary_sample,
 )
+from app.tools.source_quality import source_from_result
 
 logger = logging.getLogger(__name__)
 
@@ -31,18 +32,24 @@ def _source_id(url: str, index: int) -> str:
     return f"salary-{index}-{digest}"
 
 
-def _compact_snippet(value: str, limit: int = 500) -> str:
-    value = " ".join(value.split())
-    return value if len(value) <= limit else value[:limit].rstrip() + "…"
-
-
-def _sources_for_results(results, *, prefix: str) -> list[Source]:
+def _sources_for_results(
+    results,
+    *,
+    prefix: str,
+    accepted_urls: set[str] | None = None,
+    company_name: str | None = None,
+) -> list[Source]:
     return [
-        Source(
-            id=f"{prefix}-{_source_id(result.url, index)}",
-            title=result.title,
-            url=result.url,
-            snippet=_compact_snippet(result.snippet),
+        source_from_result(
+            result,
+            source_id=f"{prefix}-{_source_id(result.url, index)}",
+            company_name=company_name,
+            accepted=accepted_urls is None or result.url in accepted_urls,
+            reason=(
+                "包含与目标岗位一致且可解析的月薪区间"
+                if accepted_urls is None or result.url in accepted_urls
+                else "岗位、地区、招聘类型或薪资格式未通过校验"
+            ),
         )
         for index, result in enumerate(results, start=1)
     ]
@@ -82,9 +89,7 @@ def make_salary_node(deps: GraphDependencies):
             "campus": "校园招聘 校招",
             "intern": "实习招聘 实习",
         }[employment_type]
-        company_query = (
-            f"{company_name} {location} {role_name} {employment_query} 薪资 月薪"
-        )
+        company_query = f"{company_name} {location} {role_name} {employment_query} 薪资 月薪"
         try:
             raw_company_results = await deps.search.search(company_query, max_results=8)
             company_context_results = filter_salary_results(
@@ -115,6 +120,8 @@ def make_salary_node(deps: GraphDependencies):
                     sources=_sources_for_results(
                         raw_company_results,
                         prefix="salary-search-company",
+                        accepted_urls={item.url for item in company_results},
+                        company_name=company_name,
                     ),
                 )
             ]
@@ -125,13 +132,9 @@ def make_salary_node(deps: GraphDependencies):
             calculation_results = company_calculation_results
             data_scope = "company" if company_results else "insufficient"
             if fallback_used:
-                market_query = (
-                    f"{location} {market_role_name} {employment_query} 工资 薪资 月薪"
-                )
+                market_query = f"{location} {market_role_name} {employment_query} 工资 薪资 月薪"
                 try:
-                    raw_market_results = await deps.search.search(
-                        market_query, max_results=8
-                    )
+                    raw_market_results = await deps.search.search(market_query, max_results=8)
                     market_context_results = filter_salary_results(
                         raw_market_results,
                         role_name=market_role_name,
@@ -148,6 +151,7 @@ def make_salary_node(deps: GraphDependencies):
                             sources=_sources_for_results(
                                 raw_market_results,
                                 prefix="salary-search-market",
+                                accepted_urls={item.url for item in market_results},
                             ),
                         )
                     )
@@ -180,11 +184,14 @@ def make_salary_node(deps: GraphDependencies):
             trusted_source_count = sum(
                 1 for result in results if _is_trusted_salary_source(result.url)
             )
-            sources = _sources_for_results(results, prefix="salary-evidence")
+            sources = _sources_for_results(
+                results,
+                prefix="salary-evidence",
+                company_name=company_name if data_scope == "company" else None,
+            )
             if data_scope == "company":
                 summary = (
-                    f"基于 {estimate.sample_count} 个去重后的公司相关月薪区间计算，"
-                    "仅作为岗位参考。"
+                    f"基于 {estimate.sample_count} 个去重后的公司相关月薪区间计算，仅作为岗位参考。"
                 )
             elif data_scope == "market":
                 summary = (
@@ -253,12 +260,8 @@ def make_salary_node(deps: GraphDependencies):
                 **node_result,
             }
             if fallback_error:
-                response["errors"] = [
-                    NodeError(node="salary", message="市场薪资降级搜索失败")
-                ]
-                response["route_events"] = [
-                    RouteEvent(node="salary", status="degraded")
-                ]
+                response["errors"] = [NodeError(node="salary", message="市场薪资降级搜索失败")]
+                response["route_events"] = [RouteEvent(node="salary", status="degraded")]
             return response
         except Exception:
             logger.exception("Salary search failed for %s / %s", company_name, role_name)

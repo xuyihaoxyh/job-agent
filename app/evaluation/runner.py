@@ -65,10 +65,6 @@ def _route_history(result: dict) -> list[str]:
 
 
 def _build_graph(router_mode: RouterMode, settings: Settings):
-    if router_mode == "hybrid":
-        raise ValueError(
-            f"Router {router_mode!r} is not implemented yet; run the fixed baseline first"
-        )
     return build_graph(
         GraphDependencies(
             model=build_analysis_model(settings),
@@ -119,18 +115,13 @@ async def run(
             if key in completed_keys:
                 continue
             if spent >= max_cost_usd:
-                print(
-                    f"budget stop: estimated ${spent:.4f} reached "
-                    f"the ${max_cost_usd:.2f} limit"
-                )
+                print(f"budget stop: estimated ${spent:.4f} reached the ${max_cost_usd:.2f} limit")
                 return records
 
             graph_input = {**case.request, "router_mode": router_mode}
             started_at = perf_counter()
             result = await graph.ainvoke(graph_input)
-            result["elapsed_ms"] = max(
-                0, round((perf_counter() - started_at) * 1000)
-            )
+            result["elapsed_ms"] = max(0, round((perf_counter() - started_at) * 1000))
             result["route_history"] = _route_history(result)
             record = build_record(
                 run_id=run_id,
@@ -155,17 +146,13 @@ async def run(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the router evaluation benchmark")
-    parser.add_argument(
-        "--dataset", type=Path, default=Path("evaluations/cases.json")
-    )
+    parser.add_argument("--dataset", type=Path, default=Path("evaluations/cases.json"))
     parser.add_argument(
         "--output",
         type=Path,
         default=Path("evaluations/results/fixed.jsonl"),
     )
-    parser.add_argument(
-        "--router", choices=("fixed", "llm", "hybrid"), default="fixed"
-    )
+    parser.add_argument("--router", choices=("fixed", "llm", "hybrid"), default="fixed")
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--model-backend", choices=("mock", "openai"), default="mock")
     parser.add_argument("--model-name", default="gpt-4.1-mini")

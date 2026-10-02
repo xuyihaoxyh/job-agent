@@ -91,15 +91,10 @@ def test_company_salary_rejects_multi_job_aggregate_page():
     aggregate = SearchResult(
         title="公司全部职位",
         url="https://jobs.example/all",
-        snippet=(
-            "运维工程师25K-45K；大模型工程师40K-70K；"
-            "经营分析30K-50K；财务负责人70K-100K。"
-        ),
+        snippet=("运维工程师25K-45K；大模型工程师40K-70K；经营分析30K-50K；财务负责人70K-100K。"),
     )
 
-    valid = filter_valid_salary_results(
-        [specific, aggregate], max_ranges_per_result=3
-    )
+    valid = filter_valid_salary_results([specific, aggregate], max_ranges_per_result=3)
 
     assert valid == [specific]
 
@@ -235,14 +230,11 @@ def test_company_analyzer_returns_compact_structured_info():
             url="https://example.com/about",
             snippet=(
                 "示例科技是一家上市互联网公司，总部位于上海。"
-                "公司提供云计算、人工智能和企业服务，员工人数约12,000人。"
-                + "很长的历史信息。" * 80
+                "公司提供云计算、人工智能和企业服务，员工人数约12,000人。" + "很长的历史信息。" * 80
             ),
         )
     ]
-    sources = [
-        Source(id="company-1", title=results[0].title, url=results[0].url)
-    ]
+    sources = [Source(id="company-1", title=results[0].title, url=results[0].url)]
 
     info = build_company_info(
         company_name="示例科技",
@@ -312,10 +304,7 @@ def test_company_facts_do_not_borrow_competitor_businesses():
     result = SearchResult(
         title="米哈游公司介绍",
         url="https://example.com/mihoyo",
-        snippet=(
-            "米哈游主要从事游戏研发与发行。"
-            "米哈游的竞争对手腾讯还提供云计算和金融科技服务。"
-        ),
+        snippet=("米哈游主要从事游戏研发与发行。米哈游的竞争对手腾讯还提供云计算和金融科技服务。"),
     )
     source = Source(id="company-1", title=result.title, url=result.url)
 

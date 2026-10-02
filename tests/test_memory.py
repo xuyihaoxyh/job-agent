@@ -15,4 +15,3 @@ async def test_user_profile_round_trip(tmp_path):
 
     restored = await repository.get("user-1")
     assert restored == profile
-
